@@ -1,0 +1,3 @@
+*.ttf
+__pycache__/
+.venv/
