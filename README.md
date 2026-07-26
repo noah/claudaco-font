@@ -18,7 +18,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.201 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 125 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.202 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 172 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -35,18 +35,42 @@ Claudaco is also not a complete Nerd Font. It deliberately adds a focused termin
 ### Claude Code and terminal symbols
 
 ```text
+U+2190–U+2193  ← ↑ → ↓  CARDINAL ARROWS
 U+21B3  ↳  DOWNWARDS ARROW WITH TIP RIGHTWARDS
+U+21C6  ⇆  LEFTWARDS ARROW OVER RIGHTWARDS ARROW
+U+2299  ⊙  CIRCLED DOT OPERATOR
+U+22EF  ⋯  MIDLINE HORIZONTAL ELLIPSIS
 U+23BF  ⎿  DENTISTRY SYMBOL LIGHT VERTICAL AND BOTTOM RIGHT
 U+23F5  ⏵  BLACK MEDIUM RIGHT-POINTING TRIANGLE
 U+23F8  ⏸  DOUBLE VERTICAL BAR
+U+25A0  ■  BLACK SQUARE
 U+25A3  ▣  WHITE SQUARE CONTAINING BLACK SMALL SQUARE
 U+25B0  ▰  BLACK PARALLELOGRAM
 U+25B1  ▱  WHITE PARALLELOGRAM
+U+25B3  △  WHITE UP-POINTING TRIANGLE
+U+25B6  ▶  BLACK RIGHT-POINTING TRIANGLE
+U+25B8  ▸  BLACK RIGHT-POINTING SMALL TRIANGLE
+U+25BC  ▼  BLACK DOWN-POINTING TRIANGLE
 U+25BE  ▾  BLACK DOWN-POINTING SMALL TRIANGLE
+U+25C6  ◆  BLACK DIAMOND
+U+25C8  ◈  WHITE DIAMOND CONTAINING BLACK SMALL DIAMOND
+U+25C9  ◉  FISHEYE
+U+25CB  ○  WHITE CIRCLE
+U+25CD  ◍  CIRCLE WITH VERTICAL FILL
+U+25CF  ●  BLACK CIRCLE
 U+25D0  ◐  CIRCLE WITH LEFT HALF BLACK
+U+25D4  ◔  CIRCLE WITH UPPER RIGHT QUADRANT BLACK
+U+2699  ⚙  GEAR
+U+26A0  ⚠  WARNING SIGN
+U+2731  ✱  HEAVY ASTERISK
 U+276F  ❯  HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT
+U+27F3  ⟳  CLOCKWISE GAPPED CIRCLE ARROW
 U+29C9  ⧉  TWO JOINED SQUARES
+U+2B16  ⬖  DIAMOND WITH LEFT HALF BLACK
 U+2B1D  ⬝  BLACK VERY SMALL SQUARE
+U+2B25  ⬥  BLACK MEDIUM DIAMOND
+U+2B29  ⬩  BLACK SMALL DIAMOND
+U+2B2A  ⬪  BLACK SMALL LOZENGE
 ```
 
 `U+23BF` has an unusual formal Unicode name, but Claude Code uses it visually as an indented branch or continuation marker.
@@ -67,10 +91,10 @@ This includes the symbols first observed in Claude Code output:
 
 ### Box drawing
 
-Claudaco includes the light horizontal and vertical rules, a dashed horizontal rule, rounded corners, and the light/heavy half-line set used by terminal layouts:
+Claudaco includes the light rules and junctions used by OpenCode tables and trees, a dashed horizontal rule, rounded corners, and the light/heavy half-line set used by terminal layouts:
 
 ```text
-─  │  ╌  ╭  ╮  ╯  ╰  ╹
+─  │  ┃  ┌  ┐  └  ┘  ├  ┤  ┬  ┴  ╌  ╭  ╮  ╯  ╰  ╹
 ```
 
 Specifically, the patch provides:
@@ -78,9 +102,20 @@ Specifically, the patch provides:
 ```text
 U+2500
 U+2502
+U+2503
+U+250C, U+2510, U+2514, U+2518
+U+251C, U+2524, U+252C, U+2534
 U+254C
 U+256D–U+2570
 U+2574–U+257F
+```
+
+### Braille spinner cells
+
+The blank Braille cell and every frame in OpenCode's classic spinner are included:
+
+```text
+⠀  ⠋  ⠙  ⠹  ⠸  ⠼  ⠴  ⠦  ⠧  ⠇  ⠏
 ```
 
 ### Block elements
@@ -118,10 +153,10 @@ Family name:       Claudaco
 Style:             Regular
 Full name:         Claudaco Regular
 PostScript name:   Claudaco-Regular
-Version:           1.201
+Version:           1.202
 Format:            TrueType outlines
-Glyph count:       518
-Unicode mappings:  505
+Glyph count:       565
+Unicode mappings:  552
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
 ```
@@ -141,6 +176,16 @@ python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
 The generated `Claudaco-Regular.ttf` remains on your machine and is ignored by Git.
+
+### Audit OpenCode coverage
+
+After building the font, compare it with any OpenCode checkout:
+
+```shell
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-Regular.ttf
+```
+
+The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
 
 On Windows, `py` can be used instead of `python`:
 
@@ -220,6 +265,8 @@ The Claudaco name and patch are unofficial and are not endorsed by or affiliated
 
 ```text
 patch_claudaco.py      Reproducible TrueType patcher
+audit_opencode_glyphs.py  OpenCode source-to-cmap coverage audit
+test_claudaco.py        Source-font-independent builder regression tests
 requirements.txt       Python dependency
 README.md              Documentation and glyph reference
 LICENSE                MIT license for the patcher and documentation

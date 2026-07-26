@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "claudaco_font",
+  "project_id": "2ccc12ab-b7e8-4b4e-ba21-7ae64c3d4823"
+}

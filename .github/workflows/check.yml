@@ -17,5 +17,7 @@ jobs:
           python-version: "3.10"
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - run: python -m compileall -q patch_claudaco.py
+      - run: python -m compileall -q patch_claudaco.py audit_opencode_glyphs.py test_claudaco.py
+      - run: python -m unittest -v test_claudaco.py
       - run: python patch_claudaco.py --help
+      - run: python audit_opencode_glyphs.py --help
