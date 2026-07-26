@@ -10,9 +10,8 @@ Usage (PowerShell or cmd.exe):
     py -m pip install fonttools
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
-Optional:
-    py patch_claudaco.py input.ttf -o "Claudaco-Regular.ttf" \
-        --family "Claudaco"
+The default version creates a separately installable family and filename, such
+as ``Claudaco 1.202`` and ``Claudaco-1.202-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -1370,6 +1369,12 @@ def _format_codepoint(codepoint: int) -> str:
     return f"U+{codepoint:04X} {chr(codepoint)} {name}"
 
 
+def _resolve_build_identity(
+    version: str, family: str | None, output: Path | None
+) -> tuple[str, Path]:
+    return family or f"Claudaco {version}", output or Path(f"Claudaco-{version}-Regular.ttf")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="Input TrueType font")
@@ -1377,13 +1382,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "-o",
         "--output",
         type=Path,
-        default=Path("Claudaco-Regular.ttf"),
-        help="Output font path (default: %(default)s)",
+        help="Output font path (default: Claudaco-VERSION-Regular.ttf)",
     )
     parser.add_argument(
         "--family",
-        default="Claudaco",
-        help="Installed family name (default: %(default)s)",
+        help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
         "--version", default="1.202", help="Version string (default: %(default)s)"
@@ -1397,6 +1400,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if not args.input.is_file():
         parser.error(f"Input font does not exist: {args.input}")
+    family, output = _resolve_build_identity(args.version, args.family, args.output)
 
     try:
         source_font = TTFont(str(args.input), lazy=True)
@@ -1406,8 +1410,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         source_font.close()
         added_count, skipped, still_missing = patch_font(
             args.input,
-            args.output,
-            family=args.family,
+            output,
+            family=family,
             version=args.version,
             replace_existing=args.replace_existing,
         )
@@ -1415,7 +1419,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    print(f"Wrote: {args.output.resolve()}")
+    print(f"Wrote: {output.resolve()}")
     print(f"Added/replaced mappings: {added_count}")
     if bitmap_tables:
         print("Preserved embedded bitmap tables: " + ", ".join(bitmap_tables))

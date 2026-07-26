@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import unittest
+from pathlib import Path
 
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 
@@ -87,6 +88,20 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(
             (glyphs[0].xMin, glyphs[0].xMax),
             (glyphs[1].xMin, glyphs[1].xMax),
+        )
+
+    def test_default_build_identity_is_versioned(self) -> None:
+        self.assertEqual(
+            patch_claudaco._resolve_build_identity("1.202", None, None),
+            ("Claudaco 1.202", Path("Claudaco-1.202-Regular.ttf")),
+        )
+
+    def test_build_identity_allows_explicit_overrides(self) -> None:
+        self.assertEqual(
+            patch_claudaco._resolve_build_identity(
+                "1.202", "Claudaco Custom", Path("custom.ttf")
+            ),
+            ("Claudaco Custom", Path("custom.ttf")),
         )
 
 

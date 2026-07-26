@@ -4,7 +4,7 @@
 
 The name is a blend of **Claude** and **Monaco**.
 
-This repository distributes the patcher, not a font binary. You must supply your own lawfully obtained copy of [`Monaco for Powerline.ttf`](https://gist.github.com/lujiacn/32b598b1a6a43c996cbd93d42d466466/5be6ef0e44a3427fdb8343b4dacc29716449c59e#file-monaco-for-powerline-ttf) and build Claudaco locally.
+This repository distributes the patcher, not a font binary. You must supply your own copy of [`Monaco for Powerline.ttf`](https://gist.github.com/lujiacn/32b598b1a6a43c996cbd93d42d466466/5be6ef0e44a3427fdb8343b4dacc29716449c59e#file-monaco-for-powerline-ttf) and build Claudaco locally.
 
 Claudaco exists for a specific reason: Monaco has a compact, highly readable programming face, but the available `Monaco for Powerline` TTF lacks many of the symbols emitted by modern command-line applications. On Windows, those missing characters appear as empty squares, and terminal font fallback is not always reliable—especially for Powerline characters in Unicode’s Private Use Area. Claudaco places the needed glyphs directly into the same fixed-width font.
 
@@ -149,10 +149,10 @@ The `E0xx` assignments are Private Use Area conventions rather than standardized
 ## Font metadata
 
 ```text
-Family name:       Claudaco
+Family name:       Claudaco 1.202
 Style:             Regular
-Full name:         Claudaco Regular
-PostScript name:   Claudaco-Regular
+Full name:         Claudaco 1.202 Regular
+PostScript name:   Claudaco1202-Regular
 Version:           1.202
 Format:            TrueType outlines
 Glyph count:       565
@@ -175,14 +175,14 @@ python -m pip install -r requirements.txt
 python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
-The generated `Claudaco-Regular.ttf` remains on your machine and is ignored by Git.
+The generated `Claudaco-1.202-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family.
 
 ### Audit OpenCode coverage
 
 After building the font, compare it with any OpenCode checkout:
 
 ```shell
-python audit_opencode_glyphs.py /path/to/opencode Claudaco-Regular.ttf
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.202-Regular.ttf
 ```
 
 The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
@@ -196,20 +196,48 @@ py .\patch_claudaco.py ".\Monaco for Powerline.ttf"
 
 ## Install on Windows
 
-1. Remove an older installed copy of **Claudaco** when replacing the same family with a newer build.
-2. Right-click `Claudaco-Regular.ttf` and select **Install for all users**.
-3. Select **Claudaco** as the font face in the terminal or editor.
-4. Fully close and reopen the application so Windows does not continue using a cached font instance.
+1. Right-click `Claudaco-1.202-Regular.ttf` and select **Install for all users**.
+2. Select **Claudaco 1.202** as the font face in the terminal or editor.
+3. Fully close and reopen the application so Windows loads the new font family.
 
 If an application still shows squares, verify that it is actually using Claudaco rather than a similarly named Monaco font. Some applications also keep their own font caches until every window and background process has exited.
+
+### Versioned families avoid stale installations
+
+Claudaco defaults to a unique family for every release. The standard build command for version 1.202 is equivalent to:
+
+```powershell
+py .\patch_claudaco.py ".\Monaco for Powerline.ttf" `
+  -o ".\Claudaco-1.202-Regular.ttf" `
+  --family "Claudaco 1.202" `
+  --version "1.202"
+```
+
+This creates a separate family with these identifiers:
+
+```text
+Family name:      Claudaco 1.202
+Full name:        Claudaco 1.202 Regular
+PostScript name:  Claudaco1202-Regular
+```
+
+For Windows Terminal, the corresponding profile setting is:
+
+```json
+"font": {
+  "face": "Claudaco 1.202"
+}
+```
+
+An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.202**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
 
 ## Patcher options
 
 Run `python patch_claudaco.py --help` for the complete command reference. The main options are:
 
 ```text
---family NAME          Set the installed family name
---version VERSION      Set the font version string
+--family NAME          Override the default "Claudaco VERSION" family
+--version VERSION      Set the font version and default family/filename
 --replace-existing     Replace mappings already present in the source font
 ```
 
