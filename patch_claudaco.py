@@ -59,6 +59,8 @@ EXPLICIT_CODEPOINTS = {
     0x259C,  # ▜ ... UPPER LEFT, UPPER RIGHT, LOWER RIGHT
     0x259D,  # ▝ QUADRANT UPPER RIGHT
     0x25A3,  # ▣ WHITE SQUARE CONTAINING BLACK SMALL SQUARE
+    0x25B0,  # ▰ BLACK PARALLELOGRAM
+    0x25B1,  # ▱ WHITE PARALLELOGRAM
     0x25BE,  # ▾ BLACK DOWN-POINTING SMALL TRIANGLE
     0x25D0,  # ◐ CIRCLE WITH LEFT HALF BLACK
     0x276F,  # ❯ HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT
@@ -458,6 +460,35 @@ def _build_square_with_small_square(
     _rect(pen, inner_x0, inner_y0, inner_x0 + inner_side, inner_y0 + inner_side)
 
 
+def _build_parallelogram(*, outlined: bool) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        x0 = width * 0.10
+        x1 = width * 0.90
+        y0 = 150.0
+        y1 = min(1070.0, top - 180.0)
+        skew = width * 0.17
+        _polygon(pen, ((x0, y0), (x0 + skew, y1), (x1, y1), (x1 - skew, y0)))
+
+        if outlined:
+            inset = max(105.0, width * 0.085)
+            inner_y0 = y0 + inset
+            inner_y1 = y1 - inset
+            edge_shift = skew * inset / (y1 - y0)
+            _polygon(
+                pen,
+                (
+                    (x0 + inset + edge_shift, inner_y0),
+                    (x1 - skew - inset + edge_shift, inner_y0),
+                    (x1 - inset - edge_shift, inner_y1),
+                    (x0 + skew + inset - edge_shift, inner_y1),
+                ),
+            )
+
+    return builder
+
+
 def _build_half_black_circle(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
@@ -760,6 +791,8 @@ def _planned_builders() -> dict[int, Builder]:
         0x256F: _build_arc_corner(0x256F),
         0x2570: _build_arc_corner(0x2570),
         0x25A3: _build_square_with_small_square,
+        0x25B0: _build_parallelogram(outlined=False),
+        0x25B1: _build_parallelogram(outlined=True),
         0x25BE: _build_small_down_triangle,
         0x25D0: _build_half_black_circle,
         0x276F: _build_heavy_chevron,
@@ -877,7 +910,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: %(default)s)",
     )
     parser.add_argument(
-        "--version", default="1.200", help="Version string (default: %(default)s)"
+        "--version", default="1.201", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",

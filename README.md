@@ -18,7 +18,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.200 was built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 123 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.201 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 125 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -40,6 +40,8 @@ U+23BF  ⎿  DENTISTRY SYMBOL LIGHT VERTICAL AND BOTTOM RIGHT
 U+23F5  ⏵  BLACK MEDIUM RIGHT-POINTING TRIANGLE
 U+23F8  ⏸  DOUBLE VERTICAL BAR
 U+25A3  ▣  WHITE SQUARE CONTAINING BLACK SMALL SQUARE
+U+25B0  ▰  BLACK PARALLELOGRAM
+U+25B1  ▱  WHITE PARALLELOGRAM
 U+25BE  ▾  BLACK DOWN-POINTING SMALL TRIANGLE
 U+25D0  ◐  CIRCLE WITH LEFT HALF BLACK
 U+276F  ❯  HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT
@@ -116,18 +118,12 @@ Family name:       Claudaco
 Style:             Regular
 Full name:         Claudaco Regular
 PostScript name:   Claudaco-Regular
-Version:           1.200
+Version:           1.201
 Format:            TrueType outlines
-Glyph count:       516
-Unicode mappings:  503
+Glyph count:       518
+Unicode mappings:  505
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
-```
-
-SHA-256 of the version 1.200 reference build made from the linked Gist revision:
-
-```text
-d7072e17bfe43c3fce8afe8e3c00fd8f48bd2cc07db184af29da7123c78b5eb2
 ```
 
 ## Build
