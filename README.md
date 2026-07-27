@@ -2,8 +2,6 @@
 
 **Claudaco** is a Monaco-derived monospaced terminal font patched with the Unicode and Powerline-style symbols used by Claude Code and other terminal user interfaces.
 
-The name is a blend of **Claude** and **Monaco**.
-
 This repository distributes the patcher, not a font binary. You must supply your own copy of [`Monaco for Powerline.ttf`](https://gist.github.com/lujiacn/32b598b1a6a43c996cbd93d42d466466/5be6ef0e44a3427fdb8343b4dacc29716449c59e#file-monaco-for-powerline-ttf) and build Claudaco locally.
 
 Claudaco exists for a specific reason: Monaco has a compact, highly readable programming face, but the available `Monaco for Powerline` TTF lacks many of the symbols emitted by modern command-line applications. On Windows, those missing characters appear as empty squares, and terminal font fallback is not always reliable—especially for Powerline characters in Unicode’s Private Use Area. Claudaco places the needed glyphs directly into the same fixed-width font.
