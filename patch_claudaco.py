@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.203`` and ``Claudaco-1.203-Regular.ttf``.
+as ``Claudaco 1.204`` and ``Claudaco-1.204-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -39,6 +39,7 @@ EXPLICIT_CODEPOINTS = {
     0x2192,  # → RIGHTWARDS ARROW
     0x2193,  # ↓ DOWNWARDS ARROW
     0x21B3,  # ↳ DOWNWARDS ARROW WITH TIP RIGHTWARDS
+    0x21BB,  # ↻ CLOCKWISE OPEN CIRCLE ARROW
     0x21C6,  # ⇆ LEFTWARDS ARROW OVER RIGHTWARDS ARROW
     0x2299,  # ⊙ CIRCLED DOT OPERATOR
     0x22EF,  # ⋯ MIDLINE HORIZONTAL ELLIPSIS
@@ -1214,6 +1215,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2192: _build_cardinal_arrow(0x2192),
         0x2193: _build_cardinal_arrow(0x2193),
         0x21B3: _build_down_right_arrow,
+        0x21BB: _build_clockwise_arrow,
         0x21C6: _build_exchange_arrows,
         0x2299: _build_circle_symbol(0x2299),
         0x22EF: _build_midline_ellipsis,
@@ -1397,7 +1399,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.203", help="Version string (default: %(default)s)"
+        "--version", default="1.204", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",

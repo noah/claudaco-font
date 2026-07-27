@@ -14,6 +14,7 @@ OPENCODE_ADDITIONS = {
     0x2191,
     0x2192,
     0x2193,
+    0x21BB,
     0x21C6,
     0x2299,
     0x22EF,
@@ -66,10 +67,10 @@ class GlyphBuilderTests(unittest.TestCase):
         return pen.glyph()
 
     def test_opencode_additions_are_explicit_and_planned(self) -> None:
-        self.assertEqual(len(OPENCODE_ADDITIONS), 46)
+        self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 173)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 174)
 
     def test_visible_opencode_additions_have_outlines(self) -> None:
         for codepoint in OPENCODE_ADDITIONS - {0x2800}:
@@ -94,14 +95,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.203", None, None),
-            ("Claudaco 1.203", Path("Claudaco-1.203-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.204", None, None),
+            ("Claudaco 1.204", Path("Claudaco-1.204-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.203", "Claudaco Custom", Path("custom.ttf")
+                "1.204", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )
