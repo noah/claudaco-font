@@ -11,6 +11,10 @@ bd update <id> --claim  # Claim work atomically
 bd close <id>         # Complete work
 ```
 
+## Glyph Changes
+
+Whenever a glyph is added or changed, update `README.md` to reflect the resulting glyph coverage and font metadata.
+
 ## Non-Interactive Shell Commands
 
 **ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.

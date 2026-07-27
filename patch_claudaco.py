@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.202`` and ``Claudaco-1.202-Regular.ttf``.
+as ``Claudaco 1.203`` and ``Claudaco-1.203-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ from fontTools.ttLib import TTFont
 # Characters explicitly observed in the user's Claude Code / terminal output.
 EXPLICIT_CODEPOINTS = {
     0x00B7,  # · MIDDLE DOT (normally already present)
+    0x2003,  # EM SPACE
     0x2190,  # ← LEFTWARDS ARROW
     0x2191,  # ↑ UPWARDS ARROW
     0x2192,  # → RIGHTWARDS ARROW
@@ -327,6 +328,12 @@ def _draw_existing_glyph_fitted(
 # ---------- glyph builders ----------
 
 Builder = Callable[[TTFont, TTGlyphPen, int, int, int], None]
+
+
+def _build_blank(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    """Build an intentionally outline-free spacing glyph."""
 
 
 def _light_box_weight(width: int) -> float:
@@ -1201,6 +1208,7 @@ def _rename_font(font: TTFont, family: str, version: str) -> None:
 
 def _planned_builders() -> dict[int, Builder]:
     builders: dict[int, Builder] = {
+        0x2003: _build_blank,
         0x2190: _build_cardinal_arrow(0x2190),
         0x2191: _build_cardinal_arrow(0x2191),
         0x2192: _build_cardinal_arrow(0x2192),
@@ -1389,7 +1397,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.202", help="Version string (default: %(default)s)"
+        "--version", default="1.203", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
