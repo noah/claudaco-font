@@ -59,6 +59,22 @@ OPENCODE_ADDITIONS = {
     0x2B2A,
 }
 
+SET_THEORY_ADDITIONS = {
+    0x2205,
+    0x2208,
+    0x2209,
+    0x220B,
+    0x220C,
+    0x2229,
+    0x222A,
+    0x2282,
+    0x2283,
+    0x2284,
+    0x2285,
+    0x2286,
+    0x2287,
+}
+
 
 class GlyphBuilderTests(unittest.TestCase):
     def build(self, codepoint: int):
@@ -70,7 +86,14 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 174)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 187)
+
+    def test_set_theory_additions_are_explicit_and_visible(self) -> None:
+        self.assertTrue(SET_THEORY_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertTrue(SET_THEORY_ADDITIONS <= patch_claudaco._planned_builders().keys())
+        for codepoint in SET_THEORY_ADDITIONS:
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertGreater(self.build(codepoint).numberOfContours, 0)
 
     def test_visible_opencode_additions_have_outlines(self) -> None:
         for codepoint in OPENCODE_ADDITIONS - {0x2800}:
@@ -95,14 +118,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.204", None, None),
-            ("Claudaco 1.204", Path("Claudaco-1.204-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.205", None, None),
+            ("Claudaco 1.205", Path("Claudaco-1.205-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.204", "Claudaco Custom", Path("custom.ttf")
+                "1.205", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

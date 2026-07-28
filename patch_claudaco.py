@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.204`` and ``Claudaco-1.204-Regular.ttf``.
+as ``Claudaco 1.205`` and ``Claudaco-1.205-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -41,6 +41,19 @@ EXPLICIT_CODEPOINTS = {
     0x21B3,  # ↳ DOWNWARDS ARROW WITH TIP RIGHTWARDS
     0x21BB,  # ↻ CLOCKWISE OPEN CIRCLE ARROW
     0x21C6,  # ⇆ LEFTWARDS ARROW OVER RIGHTWARDS ARROW
+    0x2205,  # ∅ EMPTY SET
+    0x2208,  # ∈ ELEMENT OF
+    0x2209,  # ∉ NOT AN ELEMENT OF
+    0x220B,  # ∋ CONTAINS AS MEMBER
+    0x220C,  # ∌ DOES NOT CONTAIN AS MEMBER
+    0x2229,  # ∩ INTERSECTION
+    0x222A,  # ∪ UNION
+    0x2282,  # ⊂ SUBSET OF
+    0x2283,  # ⊃ SUPERSET OF
+    0x2284,  # ⊄ NOT A SUBSET OF
+    0x2285,  # ⊅ NOT A SUPERSET OF
+    0x2286,  # ⊆ SUBSET OF OR EQUAL TO
+    0x2287,  # ⊇ SUPERSET OF OR EQUAL TO
     0x2299,  # ⊙ CIRCLED DOT OPERATOR
     0x22EF,  # ⋯ MIDLINE HORIZONTAL ELLIPSIS
     0x23BF,  # ⎿ DENTISTRY SYMBOL LIGHT VERTICAL AND BOTTOM RIGHT
@@ -509,6 +522,125 @@ def _build_exchange_arrows(
     _rect(pen, x0, lower_y - weight / 2, x1, lower_y + weight / 2)
     _stroke_segment(pen, x1 - head_x, lower_y + head_y, x1, lower_y, weight)
     _stroke_segment(pen, x1 - head_x, lower_y - head_y, x1, lower_y, weight)
+
+
+def _build_empty_set(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width / 2.0
+    cy = bottom + (top - bottom) * 0.42
+    radius_x = width * 0.34
+    radius_y = width * 0.43
+    stroke = max(84.0, width * 0.072)
+    _ellipse_arc_band(
+        pen, cx, cy, radius_x, radius_y, 0.0, 2.0 * math.pi, stroke, segments=32
+    )
+    _stroke_segment(
+        pen,
+        cx - radius_x * 1.05,
+        cy - radius_y * 1.05,
+        cx + radius_x * 1.05,
+        cy + radius_y * 1.05,
+        stroke,
+    )
+
+
+def _build_membership(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        reflected = codepoint in (0x220B, 0x220C)
+        negated = codepoint in (0x2209, 0x220C)
+        cx = width / 2.0
+        cy = bottom + (top - bottom) * 0.42
+        radius_x = width * 0.31
+        radius_y = width * 0.36
+        stroke = max(82.0, width * 0.069)
+        if reflected:
+            start, end = 2.0 * math.pi / 3.0, -2.0 * math.pi / 3.0
+            bar_x0, bar_x1 = cx - radius_x * 0.90, cx + radius_x
+        else:
+            start, end = math.pi / 3.0, 5.0 * math.pi / 3.0
+            bar_x0, bar_x1 = cx - radius_x, cx + radius_x * 0.90
+        _ellipse_arc_band(
+            pen, cx, cy, radius_x, radius_y, start, end, stroke, segments=24
+        )
+        _rect(pen, bar_x0, cy - stroke / 2.0, bar_x1, cy + stroke / 2.0)
+        if negated:
+            _stroke_segment(
+                pen,
+                cx - radius_x * 1.15,
+                cy - radius_y * 1.18,
+                cx + radius_x * 1.15,
+                cy + radius_y * 1.18,
+                stroke * 0.82,
+            )
+
+    return builder
+
+
+def _build_set_union(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        cx = width / 2.0
+        cy = bottom + (top - bottom) * 0.45
+        radius_x = width * 0.34
+        radius_y = width * 0.42
+        stroke = max(84.0, width * 0.072)
+        if codepoint == 0x2229:
+            start, end = 0.0, math.pi
+        elif codepoint == 0x222A:
+            start, end = math.pi, 2.0 * math.pi
+        else:
+            raise ValueError(f"Unsupported set union operator: U+{codepoint:04X}")
+        _ellipse_arc_band(
+            pen, cx, cy, radius_x, radius_y, start, end, stroke, segments=20
+        )
+
+    return builder
+
+
+def _build_subset_relation(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        reflected = codepoint in (0x2283, 0x2285, 0x2287)
+        negated = codepoint in (0x2284, 0x2285)
+        includes_equal = codepoint in (0x2286, 0x2287)
+        cx = width / 2.0
+        cy = bottom + (top - bottom) * (0.51 if includes_equal else 0.42)
+        radius_x = width * 0.31
+        radius_y = width * (0.27 if includes_equal else 0.38)
+        stroke = max(82.0, width * 0.069)
+        if reflected:
+            start, end = 2.0 * math.pi / 3.0, -2.0 * math.pi / 3.0
+        else:
+            start, end = math.pi / 3.0, 5.0 * math.pi / 3.0
+        _ellipse_arc_band(
+            pen, cx, cy, radius_x, radius_y, start, end, stroke, segments=24
+        )
+        if includes_equal:
+            y0 = bottom + (top - bottom) * 0.20
+            for y in (y0, y0 + stroke * 1.65):
+                _rect(
+                    pen,
+                    cx - radius_x,
+                    y - stroke / 2.0,
+                    cx + radius_x,
+                    y + stroke / 2.0,
+                )
+        if negated:
+            _stroke_segment(
+                pen,
+                cx - radius_x * 1.15,
+                cy - radius_y * 1.18,
+                cx + radius_x * 1.15,
+                cy + radius_y * 1.18,
+                stroke * 0.82,
+            )
+
+    return builder
 
 
 def _build_box_junction(codepoint: int) -> Builder:
@@ -1217,6 +1349,19 @@ def _planned_builders() -> dict[int, Builder]:
         0x21B3: _build_down_right_arrow,
         0x21BB: _build_clockwise_arrow,
         0x21C6: _build_exchange_arrows,
+        0x2205: _build_empty_set,
+        0x2208: _build_membership(0x2208),
+        0x2209: _build_membership(0x2209),
+        0x220B: _build_membership(0x220B),
+        0x220C: _build_membership(0x220C),
+        0x2229: _build_set_union(0x2229),
+        0x222A: _build_set_union(0x222A),
+        0x2282: _build_subset_relation(0x2282),
+        0x2283: _build_subset_relation(0x2283),
+        0x2284: _build_subset_relation(0x2284),
+        0x2285: _build_subset_relation(0x2285),
+        0x2286: _build_subset_relation(0x2286),
+        0x2287: _build_subset_relation(0x2287),
         0x2299: _build_circle_symbol(0x2299),
         0x22EF: _build_midline_ellipsis,
         0x23BF: _build_dentistry_bottom_right,
@@ -1399,7 +1544,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.204", help="Version string (default: %(default)s)"
+        "--version", default="1.205", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
