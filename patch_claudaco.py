@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.205`` and ``Claudaco-1.205-Regular.ttf``.
+as ``Claudaco 1.206`` and ``Claudaco-1.206-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -38,6 +38,12 @@ EXPLICIT_CODEPOINTS = {
     0x2191,  # ↑ UPWARDS ARROW
     0x2192,  # → RIGHTWARDS ARROW
     0x2193,  # ↓ DOWNWARDS ARROW
+    0x2194,  # ↔ LEFT RIGHT ARROW
+    0x2195,  # ↕ UP DOWN ARROW
+    0x2196,  # ↖ NORTH WEST ARROW
+    0x2197,  # ↗ NORTH EAST ARROW
+    0x2198,  # ↘ SOUTH EAST ARROW
+    0x2199,  # ↙ SOUTH WEST ARROW
     0x21B3,  # ↳ DOWNWARDS ARROW WITH TIP RIGHTWARDS
     0x21BB,  # ↻ CLOCKWISE OPEN CIRCLE ARROW
     0x21C6,  # ⇆ LEFTWARDS ARROW OVER RIGHTWARDS ARROW
@@ -471,7 +477,7 @@ def _build_down_right_arrow(
     _stroke_segment(pen, head_back_x, y_low - head_half, tip_x, y_low, weight * 0.82)
 
 
-def _build_cardinal_arrow(codepoint: int) -> Builder:
+def _build_basic_arrow(codepoint: int) -> Builder:
     def builder(
         font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
     ) -> None:
@@ -483,24 +489,34 @@ def _build_cardinal_arrow(codepoint: int) -> Builder:
         head_x = width * 0.22
         head_y = (top - bottom) * 0.12
 
-        if codepoint == 0x2192:  # right
+        if codepoint in (0x2190, 0x2192, 0x2194):
             _rect(pen, x0, cy - weight / 2, x1, cy + weight / 2)
-            _stroke_segment(pen, x1 - head_x, cy + head_y, x1, cy, weight)
-            _stroke_segment(pen, x1 - head_x, cy - head_y, x1, cy, weight)
-        elif codepoint == 0x2190:  # left
-            _rect(pen, x0, cy - weight / 2, x1, cy + weight / 2)
-            _stroke_segment(pen, x0 + head_x, cy + head_y, x0, cy, weight)
-            _stroke_segment(pen, x0 + head_x, cy - head_y, x0, cy, weight)
-        elif codepoint == 0x2191:  # up
+            if codepoint in (0x2192, 0x2194):
+                _stroke_segment(pen, x1 - head_x, cy + head_y, x1, cy, weight)
+                _stroke_segment(pen, x1 - head_x, cy - head_y, x1, cy, weight)
+            if codepoint in (0x2190, 0x2194):
+                _stroke_segment(pen, x0 + head_x, cy + head_y, x0, cy, weight)
+                _stroke_segment(pen, x0 + head_x, cy - head_y, x0, cy, weight)
+        elif codepoint in (0x2191, 0x2193, 0x2195):
             _rect(pen, cx - weight / 2, y0, cx + weight / 2, y1)
-            _stroke_segment(pen, cx - head_x, y1 - head_y, cx, y1, weight)
-            _stroke_segment(pen, cx + head_x, y1 - head_y, cx, y1, weight)
-        elif codepoint == 0x2193:  # down
-            _rect(pen, cx - weight / 2, y0, cx + weight / 2, y1)
-            _stroke_segment(pen, cx - head_x, y0 + head_y, cx, y0, weight)
-            _stroke_segment(pen, cx + head_x, y0 + head_y, cx, y0, weight)
+            if codepoint in (0x2191, 0x2195):
+                _stroke_segment(pen, cx - head_x, y1 - head_y, cx, y1, weight)
+                _stroke_segment(pen, cx + head_x, y1 - head_y, cx, y1, weight)
+            if codepoint in (0x2193, 0x2195):
+                _stroke_segment(pen, cx - head_x, y0 + head_y, cx, y0, weight)
+                _stroke_segment(pen, cx + head_x, y0 + head_y, cx, y0, weight)
+        elif codepoint in (0x2196, 0x2197, 0x2198, 0x2199):
+            west = codepoint in (0x2196, 0x2199)
+            north = codepoint in (0x2196, 0x2197)
+            tip_x, tail_x = (x0, x1) if west else (x1, x0)
+            tip_y, tail_y = (y1, y0) if north else (y0, y1)
+            head_base_x = tip_x + (head_x if west else -head_x)
+            head_base_y = tip_y + (-head_y if north else head_y)
+            _stroke_segment(pen, tail_x, tail_y, tip_x, tip_y, weight)
+            _stroke_segment(pen, tip_x, tip_y, head_base_x, tip_y, weight)
+            _stroke_segment(pen, tip_x, tip_y, tip_x, head_base_y, weight)
         else:
-            raise ValueError(f"Unsupported cardinal arrow: U+{codepoint:04X}")
+            raise ValueError(f"Unsupported basic arrow: U+{codepoint:04X}")
 
     return builder
 
@@ -1342,10 +1358,16 @@ def _rename_font(font: TTFont, family: str, version: str) -> None:
 def _planned_builders() -> dict[int, Builder]:
     builders: dict[int, Builder] = {
         0x2003: _build_blank,
-        0x2190: _build_cardinal_arrow(0x2190),
-        0x2191: _build_cardinal_arrow(0x2191),
-        0x2192: _build_cardinal_arrow(0x2192),
-        0x2193: _build_cardinal_arrow(0x2193),
+        0x2190: _build_basic_arrow(0x2190),
+        0x2191: _build_basic_arrow(0x2191),
+        0x2192: _build_basic_arrow(0x2192),
+        0x2193: _build_basic_arrow(0x2193),
+        0x2194: _build_basic_arrow(0x2194),
+        0x2195: _build_basic_arrow(0x2195),
+        0x2196: _build_basic_arrow(0x2196),
+        0x2197: _build_basic_arrow(0x2197),
+        0x2198: _build_basic_arrow(0x2198),
+        0x2199: _build_basic_arrow(0x2199),
         0x21B3: _build_down_right_arrow,
         0x21BB: _build_clockwise_arrow,
         0x21C6: _build_exchange_arrows,
@@ -1544,7 +1566,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.205", help="Version string (default: %(default)s)"
+        "--version", default="1.206", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
