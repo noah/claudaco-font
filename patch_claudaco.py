@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.206`` and ``Claudaco-1.206-Regular.ttf``.
+as ``Claudaco 1.209`` and ``Claudaco-1.209-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ from fontTools.ttLib import TTFont
 EXPLICIT_CODEPOINTS = {
     0x00B7,  # · MIDDLE DOT (normally already present)
     0x2003,  # EM SPACE
+    0x202F,  # NARROW NO-BREAK SPACE
     0x2190,  # ← LEFTWARDS ARROW
     0x2191,  # ↑ UPWARDS ARROW
     0x2192,  # → RIGHTWARDS ARROW
@@ -61,6 +62,7 @@ EXPLICIT_CODEPOINTS = {
     0x2286,  # ⊆ SUBSET OF OR EQUAL TO
     0x2287,  # ⊇ SUPERSET OF OR EQUAL TO
     0x2299,  # ⊙ CIRCLED DOT OPERATOR
+    0x22EE,  # ⋮ VERTICAL ELLIPSIS
     0x22EF,  # ⋯ MIDLINE HORIZONTAL ELLIPSIS
     0x23BF,  # ⎿ DENTISTRY SYMBOL LIGHT VERTICAL AND BOTTOM RIGHT
     0x23F5,  # ⏵ BLACK MEDIUM RIGHT-POINTING TRIANGLE
@@ -135,6 +137,7 @@ EXPLICIT_CODEPOINTS = {
     0x2B2A,  # ⬪ BLACK SMALL LOZENGE
     0xE0B0,  # Powerline right hard divider (expected in base font)
     0xE0B2,  # Powerline left hard divider (expected in base font)
+    0xF0B7,  # Private-use bullet
 }
 
 
@@ -1020,6 +1023,22 @@ def _build_midline_ellipsis(
         _circle(pen, width * fraction, cy, radius, clockwise=True)
 
 
+def _build_vertical_ellipsis(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width / 2.0
+    cy = bottom + (top - bottom) * 0.42
+    radius = max(58.0, width * 0.052)
+    for offset in (-0.27, 0.0, 0.27):
+        _circle(pen, cx, cy + width * offset, radius, clockwise=True)
+
+
+def _build_bullet(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    _circle(pen, width / 2.0, (bottom + top) / 2.0, width * 0.347, clockwise=True)
+
+
 def _build_heavy_asterisk(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
@@ -1358,6 +1377,7 @@ def _rename_font(font: TTFont, family: str, version: str) -> None:
 def _planned_builders() -> dict[int, Builder]:
     builders: dict[int, Builder] = {
         0x2003: _build_blank,
+        0x202F: _build_blank,
         0x2190: _build_basic_arrow(0x2190),
         0x2191: _build_basic_arrow(0x2191),
         0x2192: _build_basic_arrow(0x2192),
@@ -1385,6 +1405,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2286: _build_subset_relation(0x2286),
         0x2287: _build_subset_relation(0x2287),
         0x2299: _build_circle_symbol(0x2299),
+        0x22EE: _build_vertical_ellipsis,
         0x22EF: _build_midline_ellipsis,
         0x23BF: _build_dentistry_bottom_right,
         0x23F5: _build_play,
@@ -1433,6 +1454,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2B25: _build_polygon_symbol(0x2B25),
         0x2B29: _build_polygon_symbol(0x2B29),
         0x2B2A: _build_polygon_symbol(0x2B2A),
+        0xF0B7: _build_bullet,
     }
 
     # Complete block-elements range; this prevents seams in TUI artwork.
@@ -1566,7 +1588,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.206", help="Version string (default: %(default)s)"
+        "--version", default="1.209", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",

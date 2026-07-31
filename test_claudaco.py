@@ -88,7 +88,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 193)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 196)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -110,9 +110,17 @@ class GlyphBuilderTests(unittest.TestCase):
                 self.assertGreater(self.build(codepoint).numberOfContours, 0)
 
     def test_blank_glyphs_have_no_ink(self) -> None:
-        for codepoint in (0x2003, 0x2800):
+        for codepoint in (0x2003, 0x202F, 0x2800):
             with self.subTest(codepoint=f"U+{codepoint:04X}"):
                 self.assertEqual(self.build(codepoint).numberOfContours, 0)
+
+    def test_vertical_ellipsis_has_three_dots(self) -> None:
+        self.assertIn(0x22EE, patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertEqual(self.build(0x22EE).numberOfContours, 3)
+
+    def test_private_use_bullet_is_visible(self) -> None:
+        self.assertIn(0xF0B7, patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertEqual(self.build(0xF0B7).numberOfContours, 1)
 
     def test_prompt_heavy_verticals_share_horizontal_bounds(self) -> None:
         glyphs = []
@@ -127,14 +135,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.206", None, None),
-            ("Claudaco 1.206", Path("Claudaco-1.206-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.209", None, None),
+            ("Claudaco 1.209", Path("Claudaco-1.209-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.206", "Claudaco Custom", Path("custom.ttf")
+                "1.209", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

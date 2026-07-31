@@ -16,7 +16,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.206 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 193 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.209 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 196 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -38,6 +38,7 @@ U+21B3  ↳  DOWNWARDS ARROW WITH TIP RIGHTWARDS
 U+21BB  ↻  CLOCKWISE OPEN CIRCLE ARROW
 U+21C6  ⇆  LEFTWARDS ARROW OVER RIGHTWARDS ARROW
 U+2299  ⊙  CIRCLED DOT OPERATOR
+U+22EE  ⋮  VERTICAL ELLIPSIS
 U+22EF  ⋯  MIDLINE HORIZONTAL ELLIPSIS
 U+23BF  ⎿  DENTISTRY SYMBOL LIGHT VERTICAL AND BOTTOM RIGHT
 U+23F5  ⏵  BLACK MEDIUM RIGHT-POINTING TRIANGLE
@@ -70,9 +71,12 @@ U+2B1D  ⬝  BLACK VERY SMALL SQUARE
 U+2B25  ⬥  BLACK MEDIUM DIAMOND
 U+2B29  ⬩  BLACK SMALL DIAMOND
 U+2B2A  ⬪  BLACK SMALL LOZENGE
+U+F0B7    PRIVATE-USE BULLET
 ```
 
 `U+23BF` has an unusual formal Unicode name, but Claude Code uses it visually as an indented branch or continuation marker.
+
+`U+F0B7` is a common private-use mapping for a bullet. Claudaco renders it with the same proportions as Monaco's `U+2022 BULLET`.
 
 ### Set theory
 
@@ -96,7 +100,7 @@ U+2287  ⊇  SUPERSET OF OR EQUAL TO
 
 ### Whitespace
 
-`U+2003 EM SPACE` is included as an outline-free glyph with the font's standard fixed-cell advance width.
+`U+2003 EM SPACE` and `U+202F NARROW NO-BREAK SPACE` are included as outline-free glyphs with the font's standard fixed-cell advance width.
 
 ### Circled alphanumerics
 
@@ -172,14 +176,14 @@ The `E0xx` assignments are Private Use Area conventions rather than standardized
 ## Font metadata
 
 ```text
-Family name:       Claudaco 1.206
+Family name:       Claudaco 1.209
 Style:             Regular
-Full name:         Claudaco 1.206 Regular
-PostScript name:   Claudaco1206-Regular
-Version:           1.206
+Full name:         Claudaco 1.209 Regular
+PostScript name:   Claudaco1209-Regular
+Version:           1.209
 Format:            TrueType outlines
-Glyph count:       586
-Unicode mappings:  573
+Glyph count:       589
+Unicode mappings:  576
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
 ```
@@ -198,14 +202,14 @@ python -m pip install -r requirements.txt
 python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
-The generated `Claudaco-1.206-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family.
+The generated `Claudaco-1.209-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family.
 
 ### Audit OpenCode coverage
 
 After building the font, compare it with any OpenCode checkout:
 
 ```shell
-python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.206-Regular.ttf
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.209-Regular.ttf
 ```
 
 The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
@@ -219,40 +223,40 @@ py .\patch_claudaco.py ".\Monaco for Powerline.ttf"
 
 ## Install on Windows
 
-1. Right-click `Claudaco-1.206-Regular.ttf` and select **Install for all users**.
-2. Select **Claudaco 1.206** as the font face in the terminal or editor.
+1. Right-click `Claudaco-1.209-Regular.ttf` and select **Install for all users**.
+2. Select **Claudaco 1.209** as the font face in the terminal or editor.
 3. Fully close and reopen the application so Windows loads the new font family.
 
 If an application still shows squares, verify that it is actually using Claudaco rather than a similarly named Monaco font. Some applications also keep their own font caches until every window and background process has exited.
 
 ### Versioned families avoid stale installations
 
-Claudaco defaults to a unique family for every release. The standard build command for version 1.206 is equivalent to:
+Claudaco defaults to a unique family for every release. The standard build command for version 1.209 is equivalent to:
 
 ```powershell
 py .\patch_claudaco.py ".\Monaco for Powerline.ttf" `
-  -o ".\Claudaco-1.206-Regular.ttf" `
-  --family "Claudaco 1.206" `
-  --version "1.206"
+  -o ".\Claudaco-1.209-Regular.ttf" `
+  --family "Claudaco 1.209" `
+  --version "1.209"
 ```
 
 This creates a separate family with these identifiers:
 
 ```text
-Family name:      Claudaco 1.206
-Full name:        Claudaco 1.206 Regular
-PostScript name:  Claudaco1206-Regular
+Family name:      Claudaco 1.209
+Full name:        Claudaco 1.209 Regular
+PostScript name:  Claudaco1209-Regular
 ```
 
 For Windows Terminal, the corresponding profile setting is:
 
 ```json
 "font": {
-  "face": "Claudaco 1.206"
+  "face": "Claudaco 1.209"
 }
 ```
 
-An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.206**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
+An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.209**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
 
 ## Patcher options
 
