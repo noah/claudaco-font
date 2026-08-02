@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.209`` and ``Claudaco-1.209-Regular.ttf``.
+as ``Claudaco 1.210`` and ``Claudaco-1.210-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -48,6 +48,7 @@ EXPLICIT_CODEPOINTS = {
     0x21B3,  # ↳ DOWNWARDS ARROW WITH TIP RIGHTWARDS
     0x21BB,  # ↻ CLOCKWISE OPEN CIRCLE ARROW
     0x21C6,  # ⇆ LEFTWARDS ARROW OVER RIGHTWARDS ARROW
+    0x21E7,  # ⇧ UPWARDS WHITE ARROW
     0x2205,  # ∅ EMPTY SET
     0x2208,  # ∈ ELEMENT OF
     0x2209,  # ∉ NOT AN ELEMENT OF
@@ -541,6 +542,37 @@ def _build_exchange_arrows(
     _rect(pen, x0, lower_y - weight / 2, x1, lower_y + weight / 2)
     _stroke_segment(pen, x1 - head_x, lower_y + head_y, x1, lower_y, weight)
     _stroke_segment(pen, x1 - head_x, lower_y - head_y, x1, lower_y, weight)
+
+
+def _build_upwards_white_arrow(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width / 2.0
+    height = top - bottom
+    tip_y = bottom + height * 0.83
+    shoulder_y = bottom + height * 0.51
+    base_y = bottom + height * 0.18
+    head_half = width * 0.45
+    stem_half = width * 0.17
+    outer = (
+        (cx, tip_y),
+        (cx + head_half, shoulder_y),
+        (cx + stem_half, shoulder_y),
+        (cx + stem_half, base_y),
+        (cx - stem_half, base_y),
+        (cx - stem_half, shoulder_y),
+        (cx - head_half, shoulder_y),
+    )
+    inner = (
+        (cx, tip_y - height * 0.072),
+        (cx + width * 0.315, shoulder_y + height * 0.04),
+        (cx + width * 0.09, shoulder_y + height * 0.04),
+        (cx + width * 0.09, base_y + height * 0.04),
+        (cx - width * 0.09, base_y + height * 0.04),
+        (cx - width * 0.09, shoulder_y + height * 0.04),
+        (cx - width * 0.315, shoulder_y + height * 0.04),
+    )
+    _polygon_ring(pen, outer, inner)
 
 
 def _build_empty_set(
@@ -1391,6 +1423,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x21B3: _build_down_right_arrow,
         0x21BB: _build_clockwise_arrow,
         0x21C6: _build_exchange_arrows,
+        0x21E7: _build_upwards_white_arrow,
         0x2205: _build_empty_set,
         0x2208: _build_membership(0x2208),
         0x2209: _build_membership(0x2209),
@@ -1588,7 +1621,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.209", help="Version string (default: %(default)s)"
+        "--version", default="1.210", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
