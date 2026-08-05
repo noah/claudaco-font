@@ -88,7 +88,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 197)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 198)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -126,6 +126,10 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertIn(0xF0B7, patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertEqual(self.build(0xF0B7).numberOfContours, 1)
 
+    def test_white_medium_square_is_outlined(self) -> None:
+        self.assertIn(0x25FB, patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertEqual(self.build(0x25FB).numberOfContours, 2)
+
     def test_prompt_heavy_verticals_share_horizontal_bounds(self) -> None:
         glyphs = []
         for codepoint in (0x2503, 0x2579):
@@ -139,14 +143,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.210", None, None),
-            ("Claudaco 1.210", Path("Claudaco-1.210-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.211", None, None),
+            ("Claudaco 1.211", Path("Claudaco-1.211-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.210", "Claudaco Custom", Path("custom.ttf")
+                "1.211", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

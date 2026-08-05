@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.210`` and ``Claudaco-1.210-Regular.ttf``.
+as ``Claudaco 1.211`` and ``Claudaco-1.211-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -114,6 +114,7 @@ EXPLICIT_CODEPOINTS = {
     0x25CF,  # ● BLACK CIRCLE
     0x25D0,  # ◐ CIRCLE WITH LEFT HALF BLACK
     0x25D4,  # ◔ CIRCLE WITH UPPER RIGHT QUADRANT BLACK
+    0x25FB,  # ◻ WHITE MEDIUM SQUARE
     0x2699,  # ⚙ GEAR
     0x26A0,  # ⚠ WARNING SIGN
     0x2731,  # ✱ HEAVY ASTERISK
@@ -453,6 +454,22 @@ def _build_very_small_square(
     height = top - bottom
     y0 = bottom + height * 0.31
     _rect(pen, x0, y0, x0 + side, y0 + side)
+
+
+def _build_white_medium_square(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    side = width * 0.68
+    cx = width / 2.0
+    cy = bottom + (top - bottom) * 0.42
+    _square_ring(
+        pen,
+        cx - side / 2.0,
+        cy - side / 2.0,
+        cx + side / 2.0,
+        cy + side / 2.0,
+        width * 0.085,
+    )
 
 
 def _build_down_right_arrow(
@@ -1476,6 +1493,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x25CF: _build_circle_symbol(0x25CF),
         0x25D0: _build_half_black_circle,
         0x25D4: _build_circle_symbol(0x25D4),
+        0x25FB: _build_white_medium_square,
         0x2699: _build_gear,
         0x26A0: _build_warning,
         0x2731: _build_heavy_asterisk,
@@ -1621,7 +1639,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.210", help="Version string (default: %(default)s)"
+        "--version", default="1.211", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
