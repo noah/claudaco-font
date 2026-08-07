@@ -83,6 +83,8 @@ SET_THEORY_ADDITIONS = {
 }
 
 GREEK_ADDITIONS = set(range(0x03B1, 0x03CA))
+GREEK_CAPITALS = set(range(0x0391, 0x03A2)) | set(range(0x03A3, 0x03AA))
+GEOMETRIC_GREEK_CAPITALS = GREEK_CAPITALS - patch_claudaco.GREEK_CAPITAL_ASCII.keys()
 
 
 class GlyphBuilderTests(unittest.TestCase):
@@ -90,6 +92,18 @@ class GlyphBuilderTests(unittest.TestCase):
         pen = TTGlyphPen(None)
         patch_claudaco._planned_builders()[codepoint](None, pen, 1229, -512, 2048)
         return pen.glyph()
+
+    def contour_areas(self, codepoint: int) -> list[float]:
+        recording = RecordingPen()
+        self.build(codepoint).draw(recording, {})
+        areas = []
+        area_pen = AreaPen(None)
+        for operator, operands in recording.value:
+            getattr(area_pen, operator)(*operands)
+            if operator in ("closePath", "endPath"):
+                areas.append(area_pen.value)
+                area_pen = AreaPen(None)
+        return areas
 
     def build_source_font(self, path: Path) -> None:
         characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -107,7 +121,9 @@ class GlyphBuilderTests(unittest.TestCase):
         builder.setupGlyphOrder(glyph_order)
         builder.setupCharacterMap(cmap)
         builder.setupGlyf(glyphs)
-        builder.setupHorizontalMetrics({name: (1229, 0) for name in glyph_order})
+        builder.setupHorizontalMetrics(
+            {name: (1229, 0 if name == ".notdef" else 180) for name in glyph_order}
+        )
         builder.setupHorizontalHeader(ascent=2048, descent=-512)
         builder.setupNameTable(
             {
@@ -127,7 +143,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 225)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 249)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -154,18 +170,31 @@ class GlyphBuilderTests(unittest.TestCase):
             with self.subTest(codepoint=f"U+{codepoint:04X}"):
                 self.assertGreater(self.build(codepoint).numberOfContours, 0)
 
+    def test_greek_capital_sigma_has_four_strokes(self) -> None:
+        self.assertIn(0x03A3, patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertEqual(self.build(0x03A3).numberOfContours, 4)
+
+    def test_geometric_greek_capitals_are_explicit_and_visible(self) -> None:
+        self.assertTrue(GREEK_CAPITALS <= patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertTrue(GREEK_CAPITALS <= patch_claudaco._planned_builders().keys())
+        for codepoint in GEOMETRIC_GREEK_CAPITALS:
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertGreater(self.build(codepoint).numberOfContours, 0)
+
+    def test_geometric_greek_capital_winding_is_valid(self) -> None:
+        for codepoint in GEOMETRIC_GREEK_CAPITALS:
+            areas = self.contour_areas(codepoint)
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertTrue(areas)
+                if codepoint == 0x0394:
+                    self.assertLess(areas[0], 0)
+                    self.assertGreater(areas[1], 0)
+                else:
+                    self.assertTrue(all(area < 0 for area in areas), areas)
+
     def test_greek_contours_use_consistent_winding(self) -> None:
         for codepoint in GREEK_ADDITIONS:
-            glyph = self.build(codepoint)
-            recording = RecordingPen()
-            glyph.draw(recording, {})
-            areas = []
-            area_pen = AreaPen(None)
-            for operator, operands in recording.value:
-                getattr(area_pen, operator)(*operands)
-                if operator in ("closePath", "endPath"):
-                    areas.append(area_pen.value)
-                    area_pen = AreaPen(None)
+            areas = self.contour_areas(codepoint)
             with self.subTest(codepoint=f"U+{codepoint:04X}"):
                 self.assertTrue(areas)
                 self.assertTrue(all(area < 0 for area in areas), areas)
@@ -182,22 +211,40 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.213",
-                version="1.213",
+                family="Claudaco 1.214",
+                version="1.214",
                 replace_existing=False,
             )
-            self.assertEqual(added, 224)
+            self.assertEqual(added, 248)
             self.assertEqual(skipped, [0x03C0])
             self.assertEqual(missing, [])
 
             output = TTFont(output_path)
             cmap = output.getBestCmap()
-            self.assertTrue(GREEK_ADDITIONS <= cmap.keys())
+            self.assertTrue((GREEK_CAPITALS | GREEK_ADDITIONS) <= cmap.keys())
+            self.assertNotIn(0x03A2, cmap)
             self.assertEqual(
-                {output["hmtx"].metrics[cmap[codepoint]][0] for codepoint in GREEK_ADDITIONS},
+                {
+                    output["hmtx"].metrics[cmap[codepoint]][0]
+                    for codepoint in GREEK_CAPITALS | GREEK_ADDITIONS
+                },
                 {1229},
             )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.213")
+            for codepoint in GREEK_CAPITALS:
+                self.assertGreater(output["glyf"][cmap[codepoint]].numberOfContours, 0)
+            source_cmap = source.getBestCmap()
+            for codepoint, character in patch_claudaco.GREEK_CAPITAL_ASCII.items():
+                self.assertEqual(
+                    list(
+                        output["glyf"][cmap[codepoint]].getCoordinates(output["glyf"])[0]
+                    ),
+                    list(
+                        source["glyf"][source_cmap[ord(character)]].getCoordinates(
+                            source["glyf"]
+                        )[0]
+                    ),
+                )
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.214")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -205,8 +252,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.213",
-                version="1.213",
+                family="Claudaco 1.214",
+                version="1.214",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -254,14 +301,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.213", None, None),
-            ("Claudaco 1.213", Path("Claudaco-1.213-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.214", None, None),
+            ("Claudaco 1.214", Path("Claudaco-1.214-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.213", "Claudaco Custom", Path("custom.ttf")
+                "1.214", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

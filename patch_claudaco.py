@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.213`` and ``Claudaco-1.213-Regular.ttf``.
+as ``Claudaco 1.214`` and ``Claudaco-1.214-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -33,6 +33,8 @@ from fontTools.ttLib import TTFont
 # Characters explicitly observed in the user's Claude Code / terminal output.
 EXPLICIT_CODEPOINTS = {
     0x00B7,  # · MIDDLE DOT (normally already present)
+    *range(0x0391, 0x03A2),  # Greek capitals alpha through rho
+    *range(0x03A3, 0x03AA),  # Greek capitals sigma through omega; U+03A2 is unassigned
     *range(0x03B1, 0x03CA),  # Greek lowercase alphabet, including final sigma
     0x2003,  # EM SPACE
     0x200A,  # HAIR SPACE
@@ -362,6 +364,156 @@ def _build_blank(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
     """Build an intentionally outline-free spacing glyph."""
+
+
+def _build_greek_capital_sigma(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    height = top - bottom
+    base = bottom + height * 0.20
+    cap_height = bottom + height * 0.78
+    middle = (base + cap_height) / 2.0
+    stroke = max(140.0, width * 0.115)
+    left = width * 0.20
+    right = width * 0.80
+    point = width * 0.61
+    _stroke_segment(pen, left, cap_height, right, cap_height, stroke)
+    _stroke_segment(pen, left, cap_height, point, middle, stroke)
+    _stroke_segment(pen, point, middle, left, base, stroke)
+    _stroke_segment(pen, left, base, right, base, stroke)
+
+
+GREEK_CAPITAL_ASCII = {
+    0x0391: "A",
+    0x0392: "B",
+    0x0395: "E",
+    0x0396: "Z",
+    0x0397: "H",
+    0x0399: "I",
+    0x039A: "K",
+    0x039C: "M",
+    0x039D: "N",
+    0x039F: "O",
+    0x03A1: "P",
+    0x03A4: "T",
+    0x03A5: "Y",
+    0x03A7: "X",
+}
+
+
+def _build_existing_character(character: str) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        source_name = font.getBestCmap().get(ord(character))
+        if source_name is None:
+            raise ValueError(f"Base font has no glyph for {character!r}")
+        font.getGlyphSet()[source_name].draw(pen)
+
+    return builder
+
+
+def _build_greek_capital(codepoint: int) -> Builder:
+    if codepoint in GREEK_CAPITAL_ASCII:
+        return _build_existing_character(GREEK_CAPITAL_ASCII[codepoint])
+
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        if codepoint == 0x03A3:
+            _build_greek_capital_sigma(font, pen, width, bottom, top)
+            return
+
+        height = top - bottom
+        base = bottom + height * 0.20
+        cap_height = bottom + height * 0.78
+        middle = (base + cap_height) / 2.0
+        stroke = max(140.0, width * 0.115)
+        cx = width / 2.0
+        left = width * 0.20
+        right = width * 0.80
+
+        def line(x0: float, y0: float, x1: float, y1: float) -> None:
+            _stroke_segment(pen, x0, y0, x1, y1, stroke)
+
+        if codepoint == 0x0393:  # Gamma
+            line(left, base, left, cap_height)
+            line(left, cap_height, right, cap_height)
+        elif codepoint == 0x0394:  # Delta
+            outer = ((cx, cap_height), (right, base), (left, base))
+            inset = width * 0.105
+            inner = (
+                (cx, cap_height - inset * 2.0),
+                (right - inset * 1.35, base + inset),
+                (left + inset * 1.35, base + inset),
+            )
+            _polygon_ring(pen, outer, inner)
+        elif codepoint == 0x0398:  # Theta
+            radius_x = width * 0.31
+            radius_y = (cap_height - base) * 0.48
+            _ellipse_arc_band(
+                pen,
+                cx,
+                middle,
+                radius_x,
+                radius_y,
+                2.0 * math.pi,
+                0.0,
+                stroke,
+                segments=32,
+            )
+            line(cx - radius_x * 0.72, middle, cx + radius_x * 0.72, middle)
+        elif codepoint == 0x039B:  # Lamda
+            line(left, base, cx, cap_height)
+            line(cx, cap_height, right, base)
+        elif codepoint == 0x039E:  # Xi
+            line(left, cap_height, right, cap_height)
+            line(width * 0.29, middle, width * 0.71, middle)
+            line(left, base, right, base)
+        elif codepoint == 0x03A0:  # Pi
+            line(left, base, left, cap_height)
+            line(left, cap_height, right, cap_height)
+            line(right, cap_height, right, base)
+        elif codepoint == 0x03A6:  # Phi
+            radius_x = width * 0.30
+            radius_y = (cap_height - base) * 0.32
+            _ellipse_arc_band(
+                pen,
+                cx,
+                middle,
+                radius_x,
+                radius_y,
+                2.0 * math.pi,
+                0.0,
+                stroke,
+                segments=32,
+            )
+            line(cx, base, cx, cap_height)
+        elif codepoint == 0x03A8:  # Psi
+            join_y = middle + width * 0.05
+            line(width * 0.22, cap_height, cx, join_y)
+            line(width * 0.78, cap_height, cx, join_y)
+            line(cx, cap_height, cx, base)
+        elif codepoint == 0x03A9:  # Omega
+            radius_x = width * 0.31
+            radius_y = cap_height - base
+            _ellipse_arc_band(
+                pen,
+                cx,
+                base,
+                radius_x,
+                radius_y,
+                math.pi,
+                0.0,
+                stroke,
+                segments=32,
+            )
+            line(cx - radius_x, base, width * 0.08, base)
+            line(cx + radius_x, base, width * 0.92, base)
+        else:
+            raise ValueError(f"Unsupported Greek capital: U+{codepoint:04X}")
+
+    return builder
 
 
 def _build_greek_delta(
@@ -1731,6 +1883,8 @@ def _planned_builders() -> dict[int, Builder]:
 
     for codepoint in range(0x03B1, 0x03CA):
         builders[codepoint] = _build_greek_letter(codepoint)
+    for codepoint in (*range(0x0391, 0x03A2), *range(0x03A3, 0x03AA)):
+        builders[codepoint] = _build_greek_capital(codepoint)
 
     # Complete block-elements range; this prevents seams in TUI artwork.
     for codepoint in range(0x2580, 0x25A0):
@@ -1863,7 +2017,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.213", help="Version string (default: %(default)s)"
+        "--version", default="1.214", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
