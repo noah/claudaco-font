@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.212`` and ``Claudaco-1.212-Regular.ttf``.
+as ``Claudaco 1.213`` and ``Claudaco-1.213-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ EXPLICIT_CODEPOINTS = {
     0x00B7,  # · MIDDLE DOT (normally already present)
     *range(0x03B1, 0x03CA),  # Greek lowercase alphabet, including final sigma
     0x2003,  # EM SPACE
+    0x200A,  # HAIR SPACE
     0x202F,  # NARROW NO-BREAK SPACE
     0x2190,  # ← LEFTWARDS ARROW
     0x2191,  # ↑ UPWARDS ARROW
@@ -1644,6 +1645,7 @@ def _rename_font(font: TTFont, family: str, version: str) -> None:
 def _planned_builders() -> dict[int, Builder]:
     builders: dict[int, Builder] = {
         0x2003: _build_blank,
+        0x200A: _build_blank,
         0x202F: _build_blank,
         0x2190: _build_basic_arrow(0x2190),
         0x2191: _build_basic_arrow(0x2191),
@@ -1861,7 +1863,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.212", help="Version string (default: %(default)s)"
+        "--version", default="1.213", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
