@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.211`` and ``Claudaco-1.211-Regular.ttf``.
+as ``Claudaco 1.212`` and ``Claudaco-1.212-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ from fontTools.ttLib import TTFont
 # Characters explicitly observed in the user's Claude Code / terminal output.
 EXPLICIT_CODEPOINTS = {
     0x00B7,  # · MIDDLE DOT (normally already present)
+    *range(0x03B1, 0x03CA),  # Greek lowercase alphabet, including final sigma
     0x2003,  # EM SPACE
     0x202F,  # NARROW NO-BREAK SPACE
     0x2190,  # ← LEFTWARDS ARROW
@@ -65,6 +66,7 @@ EXPLICIT_CODEPOINTS = {
     0x2299,  # ⊙ CIRCLED DOT OPERATOR
     0x22EE,  # ⋮ VERTICAL ELLIPSIS
     0x22EF,  # ⋯ MIDLINE HORIZONTAL ELLIPSIS
+    0x2315,  # ⌕ TELEPHONE RECORDER
     0x23BF,  # ⎿ DENTISTRY SYMBOL LIGHT VERTICAL AND BOTTOM RIGHT
     0x23F5,  # ⏵ BLACK MEDIUM RIGHT-POINTING TRIANGLE
     0x23F8,  # ⏸ DOUBLE VERTICAL BAR
@@ -361,6 +363,204 @@ def _build_blank(
     """Build an intentionally outline-free spacing glyph."""
 
 
+def _build_greek_delta(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width * 0.52
+    cy = bottom + (top - bottom) * 0.31
+    radius_x = width * 0.29
+    radius_y = width * 0.31
+    stroke = max(84.0, width * 0.072)
+    _ellipse_arc_band(
+        pen, cx, cy, radius_x, radius_y, 2.0 * math.pi, 0.0, stroke, segments=32
+    )
+    _stroke_segment(
+        pen,
+        cx + radius_x * 0.38,
+        cy + radius_y * 0.82,
+        cx - radius_x * 0.30,
+        cy + radius_y * 1.55,
+        stroke,
+    )
+    _stroke_segment(
+        pen,
+        cx - radius_x * 0.30,
+        cy + radius_y * 1.55,
+        cx + radius_x * 0.55,
+        cy + radius_y * 1.75,
+        stroke,
+    )
+
+
+def _build_greek_epsilon(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width * 0.52
+    cy = bottom + (top - bottom) * 0.40
+    radius_x = width * 0.31
+    radius_y = width * 0.30
+    stroke = max(84.0, width * 0.072)
+    _ellipse_arc_band(
+        pen,
+        cx,
+        cy,
+        radius_x,
+        radius_y,
+        math.pi * 1.72,
+        math.pi * 0.28,
+        stroke,
+        segments=28,
+    )
+    _rect(
+        pen,
+        cx - radius_x,
+        cy - stroke / 2.0,
+        cx + radius_x * 0.72,
+        cy + stroke / 2.0,
+    )
+
+
+def _build_greek_letter(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        if codepoint == 0x03B4:
+            _build_greek_delta(font, pen, width, bottom, top)
+            return
+        if codepoint == 0x03B5:
+            _build_greek_epsilon(font, pen, width, bottom, top)
+            return
+
+        height = top - bottom
+        base = bottom + height * 0.20
+        x_height = bottom + height * 0.57
+        ascender = bottom + height * 0.76
+        descender = bottom + height * 0.08
+        middle = (base + x_height) / 2.0
+        stroke = max(84.0, width * 0.072)
+        cx = width / 2.0
+
+        def line(x0: float, y0: float, x1: float, y1: float) -> None:
+            _stroke_segment(pen, x0, y0, x1, y1, stroke)
+
+        def arc(
+            arc_cx: float,
+            arc_cy: float,
+            radius_x: float,
+            radius_y: float,
+            start: float,
+            end: float,
+        ) -> None:
+            _ellipse_arc_band(
+                pen,
+                arc_cx,
+                arc_cy,
+                radius_x,
+                radius_y,
+                end,
+                start,
+                stroke,
+                segments=24,
+            )
+
+        def oval(
+            oval_cx: float, oval_cy: float, radius_x: float, radius_y: float
+        ) -> None:
+            arc(oval_cx, oval_cy, radius_x, radius_y, 0.0, 2.0 * math.pi)
+
+        if codepoint == 0x03B1:  # alpha
+            oval(width * 0.47, middle, width * 0.27, (x_height - base) * 0.48)
+            line(width * 0.70, base, width * 0.73, x_height)
+        elif codepoint == 0x03B2:  # beta
+            line(width * 0.30, descender, width * 0.30, ascender)
+            oval(width * 0.51, ascender - width * 0.23, width * 0.22, width * 0.22)
+            oval(width * 0.53, base + width * 0.24, width * 0.25, width * 0.24)
+        elif codepoint == 0x03B3:  # gamma
+            line(width * 0.23, x_height, cx, middle)
+            line(width * 0.77, x_height, cx, middle)
+            line(cx, middle, width * 0.43, descender)
+        elif codepoint == 0x03B6:  # zeta
+            line(width * 0.25, ascender, width * 0.76, ascender)
+            line(width * 0.76, ascender, width * 0.30, middle)
+            line(width * 0.30, middle, width * 0.70, base)
+            line(width * 0.70, base, width * 0.48, descender)
+            line(width * 0.48, descender, width * 0.72, descender)
+        elif codepoint == 0x03B7:  # eta
+            line(width * 0.27, base, width * 0.27, x_height)
+            line(width * 0.27, x_height, width * 0.70, x_height)
+            line(width * 0.70, x_height, width * 0.70, descender)
+        elif codepoint == 0x03B8:  # theta
+            oval(cx, (base + ascender) / 2.0, width * 0.28, (ascender - base) * 0.48)
+            line(width * 0.30, middle, width * 0.70, middle)
+        elif codepoint == 0x03B9:  # iota
+            line(width * 0.50, x_height, width * 0.50, base + stroke * 0.35)
+            line(width * 0.50, base + stroke * 0.35, width * 0.61, base)
+        elif codepoint == 0x03BA:  # kappa
+            line(width * 0.28, base, width * 0.28, x_height)
+            line(width * 0.28, middle, width * 0.73, x_height)
+            line(width * 0.28, middle, width * 0.76, base)
+        elif codepoint == 0x03BB:  # lamda
+            line(width * 0.23, base, width * 0.55, ascender)
+            line(width * 0.55, ascender, width * 0.79, base)
+        elif codepoint == 0x03BC:  # mu
+            line(width * 0.25, descender, width * 0.25, x_height)
+            arc(cx, base + width * 0.24, width * 0.25, width * 0.24, math.pi, 2.0 * math.pi)
+            line(width * 0.75, base + width * 0.24, width * 0.75, x_height)
+        elif codepoint == 0x03BD:  # nu
+            line(width * 0.23, x_height, cx, base)
+            line(cx, base, width * 0.77, x_height)
+        elif codepoint == 0x03BE:  # xi
+            line(width * 0.27, ascender, width * 0.73, ascender)
+            line(width * 0.73, ascender, width * 0.34, middle + width * 0.16)
+            line(width * 0.34, middle + width * 0.16, width * 0.68, middle)
+            line(width * 0.68, middle, width * 0.32, base)
+            line(width * 0.32, base, width * 0.68, descender)
+            line(width * 0.68, descender, width * 0.78, descender + stroke)
+        elif codepoint == 0x03BF:  # omicron
+            oval(cx, middle, width * 0.29, (x_height - base) * 0.48)
+        elif codepoint == 0x03C0:  # pi
+            line(width * 0.20, x_height, width * 0.80, x_height)
+            line(width * 0.29, x_height, width * 0.29, base)
+            line(width * 0.71, x_height, width * 0.71, base)
+        elif codepoint == 0x03C1:  # rho
+            line(width * 0.28, descender, width * 0.28, x_height)
+            oval(width * 0.52, middle + width * 0.03, width * 0.25, width * 0.27)
+        elif codepoint == 0x03C2:  # final sigma
+            arc(cx, middle, width * 0.29, (x_height - base) * 0.48, math.pi * 0.22, math.pi * 1.62)
+            line(width * 0.54, base + stroke, width * 0.70, descender)
+            line(width * 0.70, descender, width * 0.55, descender - stroke * 0.45)
+        elif codepoint == 0x03C3:  # sigma
+            oval(width * 0.48, middle, width * 0.28, (x_height - base) * 0.48)
+            line(width * 0.48, x_height, width * 0.78, x_height)
+        elif codepoint == 0x03C4:  # tau
+            line(width * 0.21, x_height, width * 0.79, x_height)
+            line(cx, x_height, cx, base)
+        elif codepoint == 0x03C5:  # upsilon
+            line(width * 0.25, x_height, width * 0.25, base + width * 0.23)
+            arc(cx, base + width * 0.23, width * 0.25, width * 0.23, math.pi, 2.0 * math.pi)
+            line(width * 0.75, base + width * 0.23, width * 0.75, x_height)
+        elif codepoint == 0x03C6:  # phi
+            oval(cx, middle, width * 0.29, (x_height - base) * 0.43)
+            line(cx, descender, cx, x_height + width * 0.18)
+        elif codepoint == 0x03C7:  # chi
+            line(width * 0.24, x_height, width * 0.74, descender)
+            line(width * 0.76, x_height, width * 0.26, descender)
+        elif codepoint == 0x03C8:  # psi
+            line(width * 0.23, x_height, width * 0.23, base + width * 0.22)
+            arc(cx, base + width * 0.22, width * 0.27, width * 0.22, math.pi, 2.0 * math.pi)
+            line(width * 0.77, base + width * 0.22, width * 0.77, x_height)
+            line(cx, descender, cx, x_height + width * 0.14)
+        elif codepoint == 0x03C9:  # omega
+            arc(width * 0.38, middle, width * 0.18, (x_height - base) * 0.48, math.pi, 2.0 * math.pi)
+            arc(width * 0.62, middle, width * 0.18, (x_height - base) * 0.48, math.pi, 2.0 * math.pi)
+            line(width * 0.20, middle, width * 0.20, x_height)
+            line(width * 0.80, middle, width * 0.80, x_height)
+        else:
+            raise ValueError(f"Unsupported Greek letter: U+{codepoint:04X}")
+
+    return builder
+
+
 def _light_box_weight(width: int) -> float:
     return max(82.0, width * 0.0667)
 
@@ -444,6 +644,24 @@ def _build_dentistry_bottom_right(
     _rect(pen, x, y_turn - weight / 2.0, x_end, y_turn + weight / 2.0)
     # Fill the inside of the bend so rasterizers do not leave a pinhole.
     _rect(pen, x - weight / 2.0, y_turn - weight / 2.0, x + weight / 2.0, y_turn + weight / 2.0)
+
+
+def _build_telephone_recorder(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width * 0.56
+    cy = bottom + (top - bottom) * 0.43
+    outer = width * 0.34
+    stroke = max(88.0, width * 0.076)
+    _stroke_segment(
+        pen,
+        cx - outer * 0.68,
+        cy - outer * 0.68,
+        width * 0.12,
+        cy - outer * 1.28,
+        stroke,
+    )
+    _ring(pen, cx, cy, outer, outer - stroke)
 
 
 def _build_very_small_square(
@@ -1457,6 +1675,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2299: _build_circle_symbol(0x2299),
         0x22EE: _build_vertical_ellipsis,
         0x22EF: _build_midline_ellipsis,
+        0x2315: _build_telephone_recorder,
         0x23BF: _build_dentistry_bottom_right,
         0x23F5: _build_play,
         0x23F8: _build_pause,
@@ -1507,6 +1726,9 @@ def _planned_builders() -> dict[int, Builder]:
         0x2B2A: _build_polygon_symbol(0x2B2A),
         0xF0B7: _build_bullet,
     }
+
+    for codepoint in range(0x03B1, 0x03CA):
+        builders[codepoint] = _build_greek_letter(codepoint)
 
     # Complete block-elements range; this prevents seams in TUI artwork.
     for codepoint in range(0x2580, 0x25A0):
@@ -1639,7 +1861,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.211", help="Version string (default: %(default)s)"
+        "--version", default="1.212", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
