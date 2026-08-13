@@ -16,7 +16,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.214 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 248 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.215 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 249 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -115,6 +115,8 @@ U+2287  ⊇  SUPERSET OF OR EQUAL TO
 
 `U+2003 EM SPACE`, `U+200A HAIR SPACE`, and `U+202F NARROW NO-BREAK SPACE` are included as outline-free glyphs with the font's standard fixed-cell advance width.
 
+`U+2011 NON-BREAKING HYPHEN` uses Monaco's existing hyphen outline while retaining its non-breaking Unicode semantics.
+
 ### Circled alphanumerics
 
 Claudaco adds:
@@ -189,14 +191,14 @@ The `E0xx` assignments are Private Use Area conventions rather than standardized
 ## Font metadata
 
 ```text
-Family name:       Claudaco 1.214
+Family name:       Claudaco 1.215
 Style:             Regular
-Full name:         Claudaco 1.214 Regular
-PostScript name:   Claudaco1214-Regular
-Version:           1.214
+Full name:         Claudaco 1.215 Regular
+PostScript name:   Claudaco1215-Regular
+Version:           1.215
 Format:            TrueType outlines
-Glyph count:       641
-Unicode mappings:  628
+Glyph count:       642
+Unicode mappings:  629
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
 ```
@@ -215,14 +217,14 @@ python -m pip install -r requirements.txt
 python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
-The generated `Claudaco-1.214-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family.
+The generated `Claudaco-1.215-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family.
 
 ### Audit OpenCode coverage
 
 After building the font, compare it with any OpenCode checkout:
 
 ```shell
-python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.214-Regular.ttf
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.215-Regular.ttf
 ```
 
 The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
@@ -236,40 +238,40 @@ py .\patch_claudaco.py ".\Monaco for Powerline.ttf"
 
 ## Install on Windows
 
-1. Right-click `Claudaco-1.214-Regular.ttf` and select **Install for all users**.
-2. Select **Claudaco 1.214** as the font face in the terminal or editor.
+1. Right-click `Claudaco-1.215-Regular.ttf` and select **Install for all users**.
+2. Select **Claudaco 1.215** as the font face in the terminal or editor.
 3. Fully close and reopen the application so Windows loads the new font family.
 
 If an application still shows squares, verify that it is actually using Claudaco rather than a similarly named Monaco font. Some applications also keep their own font caches until every window and background process has exited.
 
 ### Versioned families avoid stale installations
 
-Claudaco defaults to a unique family for every release. The standard build command for version 1.214 is equivalent to:
+Claudaco defaults to a unique family for every release. The standard build command for version 1.215 is equivalent to:
 
 ```powershell
 py .\patch_claudaco.py ".\Monaco for Powerline.ttf" `
-  -o ".\Claudaco-1.214-Regular.ttf" `
-  --family "Claudaco 1.214" `
-  --version "1.214"
+  -o ".\Claudaco-1.215-Regular.ttf" `
+  --family "Claudaco 1.215" `
+  --version "1.215"
 ```
 
 This creates a separate family with these identifiers:
 
 ```text
-Family name:      Claudaco 1.214
-Full name:        Claudaco 1.214 Regular
-PostScript name:  Claudaco1214-Regular
+Family name:      Claudaco 1.215
+Full name:        Claudaco 1.215 Regular
+PostScript name:  Claudaco1215-Regular
 ```
 
 For Windows Terminal, the corresponding profile setting is:
 
 ```json
 "font": {
-  "face": "Claudaco 1.214"
+  "face": "Claudaco 1.215"
 }
 ```
 
-An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.214**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
+An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.215**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
 
 ## Patcher options
 

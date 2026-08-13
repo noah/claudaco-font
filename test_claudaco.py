@@ -106,7 +106,7 @@ class GlyphBuilderTests(unittest.TestCase):
         return areas
 
     def build_source_font(self, path: Path) -> None:
-        characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        characters = "-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         cmap = {ord(character): f"uni{ord(character):04X}" for character in characters}
         cmap.update({0x00B7: "periodcentered", 0x03C0: "pi", 0xE0B0: "uniE0B0", 0xE0B2: "uniE0B2"})
         glyph_order = [".notdef", *cmap.values()]
@@ -143,7 +143,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 249)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 250)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -211,11 +211,11 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.214",
-                version="1.214",
+                family="Claudaco 1.215",
+                version="1.215",
                 replace_existing=False,
             )
-            self.assertEqual(added, 248)
+            self.assertEqual(added, 249)
             self.assertEqual(skipped, [0x03C0])
             self.assertEqual(missing, [])
 
@@ -244,7 +244,17 @@ class GlyphBuilderTests(unittest.TestCase):
                         )[0]
                     ),
                 )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.214")
+            self.assertEqual(
+                list(
+                    output["glyf"][cmap[0x2011]].getCoordinates(output["glyf"])[0]
+                ),
+                list(
+                    source["glyf"][source_cmap[ord("-")]].getCoordinates(
+                        source["glyf"]
+                    )[0]
+                ),
+            )
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.215")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -252,8 +262,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.214",
-                version="1.214",
+                family="Claudaco 1.215",
+                version="1.215",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -301,14 +311,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.214", None, None),
-            ("Claudaco 1.214", Path("Claudaco-1.214-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.215", None, None),
+            ("Claudaco 1.215", Path("Claudaco-1.215-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.214", "Claudaco Custom", Path("custom.ttf")
+                "1.215", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )
