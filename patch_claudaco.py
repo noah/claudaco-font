@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.215`` and ``Claudaco-1.215-Regular.ttf``.
+as ``Claudaco 1.216`` and ``Claudaco-1.216-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -145,6 +145,7 @@ EXPLICIT_CODEPOINTS = {
     0x2B2A,  # ⬪ BLACK SMALL LOZENGE
     0xE0B0,  # Powerline right hard divider (expected in base font)
     0xE0B2,  # Powerline left hard divider (expected in base font)
+    0xF0A7,  # Private-use square bullet
     0xF0B7,  # Private-use bullet
 }
 
@@ -1880,6 +1881,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2B25: _build_polygon_symbol(0x2B25),
         0x2B29: _build_polygon_symbol(0x2B29),
         0x2B2A: _build_polygon_symbol(0x2B2A),
+        0xF0A7: _build_very_small_square,
         0xF0B7: _build_bullet,
     }
 
@@ -2005,6 +2007,15 @@ def _resolve_build_identity(
     return family or f"Claudaco {version}", output or Path(f"Claudaco-{version}-Regular.ttf")
 
 
+def _update_latest_symlink(output_path: Path) -> Path:
+    latest = output_path.parent / "Claudaco-Regular.ttf"
+    temporary = latest.with_name(latest.name + ".tmp")
+    temporary.unlink(missing_ok=True)
+    temporary.symlink_to(output_path.name)
+    temporary.replace(latest)
+    return latest
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="Input TrueType font")
@@ -2019,7 +2030,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.215", help="Version string (default: %(default)s)"
+        "--version", default="1.216", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
@@ -2062,6 +2073,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         for codepoint in still_missing:
             print("  " + _format_codepoint(codepoint), file=sys.stderr)
         return 2
+
+    if args.output is None:
+        try:
+            latest = _update_latest_symlink(output)
+        except OSError as exc:
+            print(f"error: could not update latest-font symlink: {exc}", file=sys.stderr)
+            return 1
+        print(f"Latest: {latest.resolve()} via {latest}")
 
     print("Verified explicit Claude Code / terminal characters:")
     for codepoint in sorted(EXPLICIT_CODEPOINTS):

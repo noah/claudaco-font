@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 
+import os
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -143,7 +144,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 250)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 251)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -211,11 +212,11 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.215",
-                version="1.215",
+                family="Claudaco 1.216",
+                version="1.216",
                 replace_existing=False,
             )
-            self.assertEqual(added, 249)
+            self.assertEqual(added, 250)
             self.assertEqual(skipped, [0x03C0])
             self.assertEqual(missing, [])
 
@@ -254,7 +255,7 @@ class GlyphBuilderTests(unittest.TestCase):
                     )[0]
                 ),
             )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.215")
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.216")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -262,8 +263,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.215",
-                version="1.215",
+                family="Claudaco 1.216",
+                version="1.216",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -290,6 +291,25 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertIn(0xF0B7, patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertEqual(self.build(0xF0B7).numberOfContours, 1)
 
+    def test_private_use_square_bullet_is_visible(self) -> None:
+        self.assertIn(0xF0A7, patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertEqual(self.build(0xF0A7).numberOfContours, 1)
+
+    def test_latest_symlink_is_relative_and_retargeted(self) -> None:
+        with TemporaryDirectory() as directory:
+            parent = Path(directory)
+            first = parent / "Claudaco-1.215-Regular.ttf"
+            second = parent / "Claudaco-1.216-Regular.ttf"
+            first.touch()
+            second.touch()
+            latest = patch_claudaco._update_latest_symlink(first)
+            self.assertTrue(latest.is_symlink())
+            self.assertEqual(os.readlink(latest), first.name)
+            self.assertEqual(latest.resolve(), first)
+            patch_claudaco._update_latest_symlink(second)
+            self.assertEqual(os.readlink(latest), second.name)
+            self.assertEqual(latest.resolve(), second)
+
     def test_white_medium_square_is_outlined(self) -> None:
         self.assertIn(0x25FB, patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertEqual(self.build(0x25FB).numberOfContours, 2)
@@ -311,14 +331,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.215", None, None),
-            ("Claudaco 1.215", Path("Claudaco-1.215-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.216", None, None),
+            ("Claudaco 1.216", Path("Claudaco-1.216-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.215", "Claudaco Custom", Path("custom.ttf")
+                "1.216", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )
