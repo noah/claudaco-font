@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.216`` and ``Claudaco-1.216-Regular.ttf``.
+as ``Claudaco 1.218`` and ``Claudaco-1.218-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -40,6 +40,7 @@ EXPLICIT_CODEPOINTS = {
     0x200A,  # HAIR SPACE
     0x2011,  # ‑ NON-BREAKING HYPHEN
     0x202F,  # NARROW NO-BREAK SPACE
+    0x2139,  # ℹ INFORMATION SOURCE
     0x2190,  # ← LEFTWARDS ARROW
     0x2191,  # ↑ UPWARDS ARROW
     0x2192,  # → RIGHTWARDS ARROW
@@ -89,6 +90,7 @@ EXPLICIT_CODEPOINTS = {
     0x252C,  # ┬ BOX DRAWINGS LIGHT DOWN AND HORIZONTAL
     0x2534,  # ┴ BOX DRAWINGS LIGHT UP AND HORIZONTAL
     0x254C,  # ╌ BOX DRAWINGS LIGHT DOUBLE DASH HORIZONTAL
+    0x2550,  # ═ BOX DRAWINGS DOUBLE HORIZONTAL
     0x256D,  # ╭ BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
     0x256E,  # ╮ BOX DRAWINGS LIGHT ARC DOWN AND LEFT
     0x256F,  # ╯ BOX DRAWINGS LIGHT ARC UP AND LEFT
@@ -759,6 +761,23 @@ def _build_double_dash_horizontal(
     # Two equal dashes, with equal-looking gaps both within and between cells.
     _rect(pen, 0.0, mid_y - weight / 2.0, width * 5.0 / 12.0, mid_y + weight / 2.0)
     _rect(pen, width * 7.0 / 12.0, mid_y - weight / 2.0, width, mid_y + weight / 2.0)
+
+
+def _build_double_horizontal(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    weight = _light_box_weight(width)
+    mid_y = (bottom + top) / 2.0
+    offset = width * 0.105
+    overdraw = max(16.0, width * 0.014)
+    for line_y in (mid_y - offset, mid_y + offset):
+        _rect(
+            pen,
+            -overdraw,
+            line_y - weight / 2.0,
+            width + overdraw,
+            line_y + weight / 2.0,
+        )
 
 
 def _build_arc_corner(codepoint: int) -> Builder:
@@ -1802,6 +1821,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x200A: _build_blank,
         0x2011: _build_existing_character("-"),
         0x202F: _build_blank,
+        0x2139: _build_circled_character("i"),
         0x2190: _build_basic_arrow(0x2190),
         0x2191: _build_basic_arrow(0x2191),
         0x2192: _build_basic_arrow(0x2192),
@@ -1848,6 +1868,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x252C: _build_box_junction(0x252C),
         0x2534: _build_box_junction(0x2534),
         0x254C: _build_double_dash_horizontal,
+        0x2550: _build_double_horizontal,
         0x256D: _build_arc_corner(0x256D),
         0x256E: _build_arc_corner(0x256E),
         0x256F: _build_arc_corner(0x256F),
@@ -2030,7 +2051,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.216", help="Version string (default: %(default)s)"
+        "--version", default="1.218", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
