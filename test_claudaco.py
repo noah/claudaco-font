@@ -156,7 +156,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 279)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 280)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -232,11 +232,11 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.220",
-                version="1.220",
+                family="Claudaco 1.221",
+                version="1.221",
                 replace_existing=False,
             )
-            self.assertEqual(added, 276)
+            self.assertEqual(added, 277)
             self.assertEqual(skipped, [0x03C0, 0xFB01, 0xFB02])
             self.assertEqual(missing, [])
 
@@ -315,7 +315,7 @@ class GlyphBuilderTests(unittest.TestCase):
                     )[0]
                 ),
             )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.220")
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.221")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -323,8 +323,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.220",
-                version="1.220",
+                family="Claudaco 1.221",
+                version="1.221",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -381,6 +381,13 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertLess(glyph.xMin, 0)
         self.assertGreater(glyph.xMax, 1229)
 
+    def test_double_vertical_has_two_overdrawn_rules(self) -> None:
+        glyph = self.build(0x2551)
+        glyph.recalcBounds({})
+        self.assertEqual(glyph.numberOfContours, 2)
+        self.assertLess(glyph.yMin, -512)
+        self.assertGreater(glyph.yMax, 2048)
+
     def test_telephone_recorder_has_ring_and_stem(self) -> None:
         self.assertIn(0x2315, patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertEqual(self.build(0x2315).numberOfContours, 3)
@@ -398,14 +405,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.220", None, None),
-            ("Claudaco 1.220", Path("Claudaco-1.220-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.221", None, None),
+            ("Claudaco 1.221", Path("Claudaco-1.221-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.220", "Claudaco Custom", Path("custom.ttf")
+                "1.221", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

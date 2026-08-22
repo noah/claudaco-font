@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.220`` and ``Claudaco-1.220-Regular.ttf``.
+as ``Claudaco 1.221`` and ``Claudaco-1.221-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -123,6 +123,7 @@ EXPLICIT_CODEPOINTS = {
     0x2534,  # ┴ BOX DRAWINGS LIGHT UP AND HORIZONTAL
     0x254C,  # ╌ BOX DRAWINGS LIGHT DOUBLE DASH HORIZONTAL
     0x2550,  # ═ BOX DRAWINGS DOUBLE HORIZONTAL
+    0x2551,  # ║ BOX DRAWINGS DOUBLE VERTICAL
     0x256D,  # ╭ BOX DRAWINGS LIGHT ARC DOWN AND RIGHT
     0x256E,  # ╮ BOX DRAWINGS LIGHT ARC DOWN AND LEFT
     0x256F,  # ╯ BOX DRAWINGS LIGHT ARC UP AND LEFT
@@ -875,6 +876,23 @@ def _build_double_horizontal(
             line_y - weight / 2.0,
             width + overdraw,
             line_y + weight / 2.0,
+        )
+
+
+def _build_double_vertical(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    weight = _light_box_weight(width)
+    mid_x = width / 2.0
+    offset = width * 0.105
+    overdraw = max(16.0, width * 0.014)
+    for line_x in (mid_x - offset, mid_x + offset):
+        _rect(
+            pen,
+            line_x - weight / 2.0,
+            bottom - overdraw,
+            line_x + weight / 2.0,
+            top + overdraw,
         )
 
 
@@ -1995,6 +2013,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2534: _build_box_junction(0x2534),
         0x254C: _build_double_dash_horizontal,
         0x2550: _build_double_horizontal,
+        0x2551: _build_double_vertical,
         0x256D: _build_arc_corner(0x256D),
         0x256E: _build_arc_corner(0x256E),
         0x256F: _build_arc_corner(0x256F),
@@ -2184,7 +2203,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.220", help="Version string (default: %(default)s)"
+        "--version", default="1.221", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
