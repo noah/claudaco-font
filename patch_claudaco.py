@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.221`` and ``Claudaco-1.221-Regular.ttf``.
+as ``Claudaco 1.222`` and ``Claudaco-1.222-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -59,6 +59,29 @@ PRESENTATION_LIGATURES = {
     0xFB04: "ffl",
     0xFB05: "ſt",
     0xFB06: "st",
+}
+
+DIRECTIONAL_TRIANGLES = {
+    0x25B2: ("up", False, "regular"),
+    0x25B3: ("up", True, "regular"),
+    0x25B4: ("up", False, "small"),
+    0x25B5: ("up", True, "small"),
+    0x25B6: ("right", False, "regular"),
+    0x25B7: ("right", True, "regular"),
+    0x25B8: ("right", False, "small"),
+    0x25B9: ("right", True, "small"),
+    0x25BA: ("right", False, "pointer"),
+    0x25BB: ("right", True, "pointer"),
+    0x25BC: ("down", False, "regular"),
+    0x25BD: ("down", True, "regular"),
+    0x25BE: ("down", False, "small"),
+    0x25BF: ("down", True, "small"),
+    0x25C0: ("left", False, "regular"),
+    0x25C1: ("left", True, "regular"),
+    0x25C2: ("left", False, "small"),
+    0x25C3: ("left", True, "small"),
+    0x25C4: ("left", False, "pointer"),
+    0x25C5: ("left", True, "pointer"),
 }
 
 
@@ -155,6 +178,11 @@ EXPLICIT_CODEPOINTS = {
     0x25CF,  # ● BLACK CIRCLE
     0x25D0,  # ◐ CIRCLE WITH LEFT HALF BLACK
     0x25D4,  # ◔ CIRCLE WITH UPPER RIGHT QUADRANT BLACK
+    *DIRECTIONAL_TRIANGLES,
+    0x25C7,  # ◇ WHITE DIAMOND
+    0x25CC,  # ◌ DOTTED CIRCLE
+    0x25CE,  # ◎ BULLSEYE
+    *range(0x25E2, 0x25E6),  # Corner triangles
     0x25FB,  # ◻ WHITE MEDIUM SQUARE
     0x2699,  # ⚙ GEAR
     0x26A0,  # ⚠ WARNING SIGN
@@ -1284,20 +1312,6 @@ def _build_braille(codepoint: int) -> Builder:
     return builder
 
 
-def _build_small_down_triangle(
-    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
-) -> None:
-    # Matches the proportions of the previously generated Monaco Claude Code 1.1 glyph.
-    _polygon(
-        pen,
-        (
-            (width * 0.2148, 825.0),
-            (width * 0.7852, 825.0),
-            (width * 0.5004, 315.0),
-        ),
-    )
-
-
 def _build_pause(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
@@ -1482,6 +1496,8 @@ def _build_circle_symbol(codepoint: int) -> Builder:
             )
         elif codepoint == 0x25D4:  # upper-right quadrant black
             _filled_circle_sector(pen, cx, cy, inner, 0.0, math.pi / 2.0)
+        elif codepoint == 0x25CE:  # bullseye
+            _ring(pen, cx, cy, width * 0.18, width * 0.10)
         elif codepoint != 0x25CB:
             raise ValueError(f"Unsupported circle symbol: U+{codepoint:04X}")
 
@@ -1499,22 +1515,35 @@ def _build_polygon_symbol(codepoint: int) -> Builder:
             _rect(pen, cx - side / 2, cy - side / 2, cx + side / 2, cy + side / 2)
             return
 
-        if codepoint in (0x25B3, 0x25B6, 0x25B8, 0x25BC):
-            small = codepoint == 0x25B8
-            half = width * (0.29 if small else 0.39)
-            if codepoint == 0x25B3:
-                outer = ((cx, cy + half), (cx + half, cy - half), (cx - half, cy - half))
-                inset = width * 0.105
-                inner = (
-                    (cx, cy + half - inset * 1.8),
-                    (cx + half - inset * 1.45, cy - half + inset),
-                    (cx - half + inset * 1.45, cy - half + inset),
-                )
-                _polygon_ring(pen, outer, inner)
-            elif codepoint in (0x25B6, 0x25B8):
-                _polygon(pen, ((cx - half, cy - half), (cx - half, cy + half), (cx + half, cy)))
+        if codepoint in DIRECTIONAL_TRIANGLES:
+            direction, outlined, style = DIRECTIONAL_TRIANGLES[codepoint]
+            if style == "regular":
+                half_x = half_y = width * 0.39
+                inner_scale = 0.68
+            elif style == "small":
+                half_x = half_y = width * 0.27
+                inner_scale = 0.60
             else:
-                _polygon(pen, ((cx - half, cy + half), (cx + half, cy + half), (cx, cy - half)))
+                half_x = width * 0.43
+                half_y = width * 0.23
+                inner_scale = 0.58
+
+            def points(scale: float) -> tuple[tuple[float, float], ...]:
+                hx = half_x * scale
+                hy = half_y * scale
+                if direction == "up":
+                    return ((cx, cy + hy), (cx + hx, cy - hy), (cx - hx, cy - hy))
+                if direction == "right":
+                    return ((cx - hx, cy - hy), (cx - hx, cy + hy), (cx + hx, cy))
+                if direction == "down":
+                    return ((cx - hx, cy + hy), (cx + hx, cy + hy), (cx, cy - hy))
+                return ((cx + hx, cy + hy), (cx + hx, cy - hy), (cx - hx, cy))
+
+            outer = points(1.0)
+            if outlined:
+                _polygon_ring(pen, outer, points(inner_scale))
+            else:
+                _polygon(pen, outer)
             return
 
         diamond_half = {
@@ -1531,6 +1560,17 @@ def _build_polygon_symbol(codepoint: int) -> Builder:
         )
         if codepoint in (0x25C6, 0x2B25, 0x2B29, 0x2B2A):
             _polygon(pen, outer)
+        elif codepoint == 0x25C7:
+            _polygon_ring(
+                pen,
+                outer,
+                (
+                    (cx, cy + diamond_half * 0.72),
+                    (cx + diamond_half * 0.72, cy),
+                    (cx, cy - diamond_half * 0.72),
+                    (cx - diamond_half * 0.72, cy),
+                ),
+            )
         elif codepoint == 0x25C8:
             inner_half = diamond_half * 0.34
             _polygon_ring(
@@ -1567,6 +1607,42 @@ def _build_polygon_symbol(codepoint: int) -> Builder:
             _polygon(pen, ((cx, cy + inner_half), (cx, cy - inner_half), (cx - inner_half, cy)))
         else:
             raise ValueError(f"Unsupported polygon symbol: U+{codepoint:04X}")
+
+    return builder
+
+
+def _build_dotted_circle(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    cx = width / 2.0
+    cy = bottom + (top - bottom) * 0.42
+    orbit = width * 0.34
+    dot_radius = width * 0.043
+    for index in range(12):
+        angle = index * math.pi / 6.0
+        _circle(
+            pen,
+            cx + orbit * math.cos(angle),
+            cy + orbit * math.sin(angle),
+            dot_radius,
+            clockwise=True,
+        )
+
+
+def _build_corner_triangle(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        cy = bottom + (top - bottom) * 0.42
+        x0, x1 = width * 0.12, width * 0.88
+        y0, y1 = cy - width * 0.38, cy + width * 0.38
+        points = {
+            0x25E2: ((x0, y0), (x1, y0), (x1, y1)),
+            0x25E3: ((x0, y0), (x1, y0), (x0, y1)),
+            0x25E4: ((x0, y0), (x0, y1), (x1, y1)),
+            0x25E5: ((x1, y0), (x0, y1), (x1, y1)),
+        }
+        _polygon(pen, points[codepoint])
 
     return builder
 
@@ -2022,19 +2098,21 @@ def _planned_builders() -> dict[int, Builder]:
         0x25A3: _build_square_with_small_square,
         0x25B0: _build_parallelogram(outlined=False),
         0x25B1: _build_parallelogram(outlined=True),
-        0x25B3: _build_polygon_symbol(0x25B3),
-        0x25B6: _build_polygon_symbol(0x25B6),
-        0x25B8: _build_polygon_symbol(0x25B8),
-        0x25BC: _build_polygon_symbol(0x25BC),
-        0x25BE: _build_small_down_triangle,
         0x25C6: _build_polygon_symbol(0x25C6),
+        0x25C7: _build_polygon_symbol(0x25C7),
         0x25C8: _build_polygon_symbol(0x25C8),
         0x25C9: _build_circle_symbol(0x25C9),
         0x25CB: _build_circle_symbol(0x25CB),
+        0x25CC: _build_dotted_circle,
         0x25CD: _build_circle_symbol(0x25CD),
+        0x25CE: _build_circle_symbol(0x25CE),
         0x25CF: _build_circle_symbol(0x25CF),
         0x25D0: _build_half_black_circle,
         0x25D4: _build_circle_symbol(0x25D4),
+        0x25E2: _build_corner_triangle(0x25E2),
+        0x25E3: _build_corner_triangle(0x25E3),
+        0x25E4: _build_corner_triangle(0x25E4),
+        0x25E5: _build_corner_triangle(0x25E5),
         0x25FB: _build_white_medium_square,
         0x2699: _build_gear,
         0x26A0: _build_warning,
@@ -2062,6 +2140,8 @@ def _planned_builders() -> dict[int, Builder]:
         )
     for codepoint, sequence in PRESENTATION_LIGATURES.items():
         builders[codepoint] = _build_letter_sequence(sequence)
+    for codepoint in DIRECTIONAL_TRIANGLES:
+        builders[codepoint] = _build_polygon_symbol(codepoint)
 
     # Complete block-elements range; this prevents seams in TUI artwork.
     for codepoint in range(0x2580, 0x25A0):
@@ -2203,7 +2283,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.221", help="Version string (default: %(default)s)"
+        "--version", default="1.222", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
