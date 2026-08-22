@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.218`` and ``Claudaco-1.218-Regular.ttf``.
+as ``Claudaco 1.220`` and ``Claudaco-1.220-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -28,6 +28,38 @@ from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
+
+
+LATIN_EXTENDED_D_LIGATURES = {
+    0xA728: ("TZ", False),
+    0xA729: ("tz", False),
+    0xA732: ("AA", False),
+    0xA733: ("aa", False),
+    0xA734: ("AO", False),
+    0xA735: ("ao", False),
+    0xA736: ("AU", False),
+    0xA737: ("au", False),
+    0xA738: ("AV", False),
+    0xA739: ("av", False),
+    0xA73A: ("AV", True),
+    0xA73B: ("av", True),
+    0xA73C: ("AY", False),
+    0xA73D: ("ay", False),
+    0xA74E: ("OO", False),
+    0xA74F: ("oo", False),
+    0xA760: ("VY", False),
+    0xA761: ("vy", False),
+}
+
+PRESENTATION_LIGATURES = {
+    0xFB00: "ff",
+    0xFB01: "fi",
+    0xFB02: "fl",
+    0xFB03: "ffi",
+    0xFB04: "ffl",
+    0xFB05: "ſt",
+    0xFB06: "st",
+}
 
 
 # Characters explicitly observed in the user's Claude Code / terminal output.
@@ -149,6 +181,9 @@ EXPLICIT_CODEPOINTS = {
     0xE0B2,  # Powerline left hard divider (expected in base font)
     0xF0A7,  # Private-use square bullet
     0xF0B7,  # Private-use bullet
+    *LATIN_EXTENDED_D_LIGATURES,
+    *PRESENTATION_LIGATURES,
+    0xFFFD,  # � REPLACEMENT CHARACTER
 }
 
 
@@ -413,6 +448,69 @@ def _build_existing_character(character: str) -> Builder:
         if source_name is None:
             raise ValueError(f"Base font has no glyph for {character!r}")
         font.getGlyphSet()[source_name].draw(pen)
+
+    return builder
+
+
+def _build_letter_sequence(sequence: str, *, horizontal_bar: bool = False) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        glyph_set = font.getGlyphSet()
+        cmap = font.getBestCmap()
+        margin = width * 0.035
+        slot = (width - 2.0 * margin) / len(sequence)
+        scale_x = 1.25 * slot / width
+        y_min = math.inf
+        y_max = -math.inf
+        for index, character in enumerate(sequence):
+            dx = margin + index * slot - slot * 0.125
+            if character == "ſ":
+                stem_x = dx + slot * 0.58
+                hook_cx = stem_x + slot * 0.14
+                hook_cy = 1395.0
+                weight = _light_box_weight(width)
+                _rect(
+                    pen,
+                    stem_x - weight / 2.0,
+                    0.0,
+                    stem_x + weight / 2.0,
+                    hook_cy,
+                )
+                _ellipse_arc_band(
+                    pen,
+                    hook_cx,
+                    hook_cy,
+                    slot * 0.14,
+                    250.0,
+                    math.pi,
+                    math.pi / 2.0,
+                    weight,
+                    segments=16,
+                )
+                y_min = min(y_min, 0.0)
+                y_max = max(y_max, hook_cy + 250.0 + weight / 2.0)
+                continue
+            source_name = cmap.get(ord(character))
+            if source_name is None:
+                raise ValueError(f"Base font has no glyph for {character!r}")
+            _x_min, source_y_min, _x_max, source_y_max = _bounds(font, source_name)
+            y_min = min(y_min, source_y_min)
+            y_max = max(y_max, source_y_max)
+            transformed = TransformPen(
+                pen, Transform(scale_x, 0.0, 0.0, 1.0, dx, 0.0)
+            )
+            glyph_set[source_name].draw(transformed)
+        if horizontal_bar:
+            bar_y = (y_min + y_max) / 2.0
+            weight = _light_box_weight(width)
+            _rect(
+                pen,
+                width * 0.20,
+                bar_y - weight / 2.0,
+                width * 0.80,
+                bar_y + weight / 2.0,
+            )
 
     return builder
 
@@ -1480,6 +1578,34 @@ def _build_bullet(
     _circle(pen, width / 2.0, (bottom + top) / 2.0, width * 0.347, clockwise=True)
 
 
+def _build_replacement_character(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    source_name = font.getBestCmap().get(ord("?"))
+    if source_name is None:
+        raise ValueError("Base font has no question-mark glyph")
+    cx = width / 2.0
+    cy = bottom + (top - bottom) * 0.42
+    half = width * 0.44
+    inner_half = half * 0.72
+    _polygon_ring(
+        pen,
+        ((cx, cy + half), (cx + half, cy), (cx, cy - half), (cx - half, cy)),
+        (
+            (cx, cy + inner_half),
+            (cx + inner_half, cy),
+            (cx, cy - inner_half),
+            (cx - inner_half, cy),
+        ),
+    )
+    _draw_existing_glyph_fitted(
+        font,
+        source_name,
+        pen,
+        (cx - width * 0.17, cy - width * 0.25, cx + width * 0.17, cy + width * 0.25),
+    )
+
+
 def _build_heavy_asterisk(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
@@ -1904,12 +2030,19 @@ def _planned_builders() -> dict[int, Builder]:
         0x2B2A: _build_polygon_symbol(0x2B2A),
         0xF0A7: _build_very_small_square,
         0xF0B7: _build_bullet,
+        0xFFFD: _build_replacement_character,
     }
 
     for codepoint in range(0x03B1, 0x03CA):
         builders[codepoint] = _build_greek_letter(codepoint)
     for codepoint in (*range(0x0391, 0x03A2), *range(0x03A3, 0x03AA)):
         builders[codepoint] = _build_greek_capital(codepoint)
+    for codepoint, (sequence, horizontal_bar) in LATIN_EXTENDED_D_LIGATURES.items():
+        builders[codepoint] = _build_letter_sequence(
+            sequence, horizontal_bar=horizontal_bar
+        )
+    for codepoint, sequence in PRESENTATION_LIGATURES.items():
+        builders[codepoint] = _build_letter_sequence(sequence)
 
     # Complete block-elements range; this prevents seams in TUI artwork.
     for codepoint in range(0x2580, 0x25A0):
@@ -2051,7 +2184,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.218", help="Version string (default: %(default)s)"
+        "--version", default="1.220", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
