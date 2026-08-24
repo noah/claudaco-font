@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.222`` and ``Claudaco-1.222-Regular.ttf``.
+as ``Claudaco 1.223`` and ``Claudaco-1.223-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -82,6 +82,12 @@ DIRECTIONAL_TRIANGLES = {
     0x25C3: ("left", True, "small"),
     0x25C4: ("left", False, "pointer"),
     0x25C5: ("left", True, "pointer"),
+}
+
+ADJACENT_SQUARE_ADDITIONS = {
+    0x25A1,
+    0x25A2,
+    *range(0x25A4, 0x25B0),
 }
 
 
@@ -162,6 +168,7 @@ EXPLICIT_CODEPOINTS = {
     0x259C,  # ▜ ... UPPER LEFT, UPPER RIGHT, LOWER RIGHT
     0x259D,  # ▝ QUADRANT UPPER RIGHT
     0x25A0,  # ■ BLACK SQUARE
+    *ADJACENT_SQUARE_ADDITIONS,
     0x25A3,  # ▣ WHITE SQUARE CONTAINING BLACK SMALL SQUARE
     0x25B0,  # ▰ BLACK PARALLELOGRAM
     0x25B1,  # ▱ WHITE PARALLELOGRAM
@@ -239,6 +246,41 @@ def _rect(
     pen.moveTo(points[0])
     for point in points[1:]:
         pen.lineTo(point)
+    pen.closePath()
+
+
+def _rounded_rect(
+    pen: TTGlyphPen,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    radius: float,
+    *,
+    clockwise: bool = True,
+) -> None:
+    """Add a rounded rectangular contour."""
+    radius = min(radius, abs(x1 - x0) / 2.0, abs(y1 - y0) / 2.0)
+    if clockwise:
+        pen.moveTo((x0 + radius, y0))
+        pen.qCurveTo((x0, y0), (x0, y0 + radius))
+        pen.lineTo((x0, y1 - radius))
+        pen.qCurveTo((x0, y1), (x0 + radius, y1))
+        pen.lineTo((x1 - radius, y1))
+        pen.qCurveTo((x1, y1), (x1, y1 - radius))
+        pen.lineTo((x1, y0 + radius))
+        pen.qCurveTo((x1, y0), (x1 - radius, y0))
+        pen.lineTo((x0 + radius, y0))
+    else:
+        pen.moveTo((x0 + radius, y0))
+        pen.lineTo((x1 - radius, y0))
+        pen.qCurveTo((x1, y0), (x1, y0 + radius))
+        pen.lineTo((x1, y1 - radius))
+        pen.qCurveTo((x1, y1), (x1 - radius, y1))
+        pen.lineTo((x0 + radius, y1))
+        pen.qCurveTo((x0, y1), (x0, y1 - radius))
+        pen.lineTo((x0, y0 + radius))
+        pen.qCurveTo((x0, y0), (x0 + radius, y0))
     pen.closePath()
 
 
@@ -1611,6 +1653,98 @@ def _build_polygon_symbol(codepoint: int) -> Builder:
     return builder
 
 
+def _build_square_family(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        cx = width / 2.0
+        cy = bottom + (top - bottom) * 0.42
+        side = width * 0.68
+        stroke = width * 0.085
+
+        def rectangular_ring(
+            x0: float, y0: float, x1: float, y1: float
+        ) -> None:
+            _rect(pen, x0, y0, x1, y1)
+            _rect(
+                pen,
+                x0 + stroke,
+                y0 + stroke,
+                x1 - stroke,
+                y1 - stroke,
+                clockwise=False,
+            )
+
+        if codepoint in (0x25A1, *range(0x25A4, 0x25AA)):
+            x0, x1 = cx - side / 2.0, cx + side / 2.0
+            y0, y1 = cy - side / 2.0, cy + side / 2.0
+            rectangular_ring(x0, y0, x1, y1)
+            inset = stroke * 1.65
+            ix0, ix1 = x0 + inset, x1 - inset
+            iy0, iy1 = y0 + inset, y1 - inset
+            line = stroke * 0.48
+            if codepoint in (0x25A4, 0x25A6):
+                for fraction in (0.25, 0.50, 0.75):
+                    y = iy0 + (iy1 - iy0) * fraction
+                    _rect(pen, ix0, y - line / 2.0, ix1, y + line / 2.0)
+            if codepoint in (0x25A5, 0x25A6):
+                for fraction in (0.25, 0.50, 0.75):
+                    x = ix0 + (ix1 - ix0) * fraction
+                    _rect(pen, x - line / 2.0, iy0, x + line / 2.0, iy1)
+            if codepoint in (0x25A7, 0x25A9):
+                _stroke_segment(pen, ix0, iy1, ix1, iy0, line)
+                _stroke_segment(
+                    pen, ix0, (iy0 + iy1) / 2.0, (ix0 + ix1) / 2.0, iy0, line
+                )
+                _stroke_segment(
+                    pen, (ix0 + ix1) / 2.0, iy1, ix1, (iy0 + iy1) / 2.0, line
+                )
+            if codepoint in (0x25A8, 0x25A9):
+                _stroke_segment(pen, ix0, iy0, ix1, iy1, line)
+                _stroke_segment(
+                    pen, ix0, (iy0 + iy1) / 2.0, (ix0 + ix1) / 2.0, iy1, line
+                )
+                _stroke_segment(
+                    pen, (ix0 + ix1) / 2.0, iy0, ix1, (iy0 + iy1) / 2.0, line
+                )
+            return
+
+        if codepoint == 0x25A2:
+            x0, x1 = cx - side / 2.0, cx + side / 2.0
+            y0, y1 = cy - side / 2.0, cy + side / 2.0
+            _rounded_rect(pen, x0, y0, x1, y1, width * 0.10)
+            _rounded_rect(
+                pen,
+                x0 + stroke,
+                y0 + stroke,
+                x1 - stroke,
+                y1 - stroke,
+                width * 0.045,
+                clockwise=False,
+            )
+            return
+
+        if codepoint in (0x25AA, 0x25AB):
+            small = width * 0.34
+            x0, x1 = cx - small / 2.0, cx + small / 2.0
+            y0, y1 = cy - small / 2.0, cy + small / 2.0
+        elif codepoint in (0x25AC, 0x25AD):
+            x0, x1 = cx - width * 0.39, cx + width * 0.39
+            y0, y1 = cy - width * 0.18, cy + width * 0.18
+        elif codepoint in (0x25AE, 0x25AF):
+            x0, x1 = cx - width * 0.18, cx + width * 0.18
+            y0, y1 = cy - width * 0.39, cy + width * 0.39
+        else:
+            raise ValueError(f"Unsupported square-family symbol: U+{codepoint:04X}")
+
+        if codepoint in (0x25AB, 0x25AD, 0x25AF):
+            rectangular_ring(x0, y0, x1, y1)
+        else:
+            _rect(pen, x0, y0, x1, y1)
+
+    return builder
+
+
 def _build_dotted_circle(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
@@ -2142,6 +2276,8 @@ def _planned_builders() -> dict[int, Builder]:
         builders[codepoint] = _build_letter_sequence(sequence)
     for codepoint in DIRECTIONAL_TRIANGLES:
         builders[codepoint] = _build_polygon_symbol(codepoint)
+    for codepoint in ADJACENT_SQUARE_ADDITIONS:
+        builders[codepoint] = _build_square_family(codepoint)
 
     # Complete block-elements range; this prevents seams in TUI artwork.
     for codepoint in range(0x2580, 0x25A0):
@@ -2283,7 +2419,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.222", help="Version string (default: %(default)s)"
+        "--version", default="1.223", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
