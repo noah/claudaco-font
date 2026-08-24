@@ -15,6 +15,8 @@ bd close <id>         # Complete work
 
 Whenever a glyph is added or changed, update `README.md` to reflect the resulting glyph coverage and font metadata.
 
+When a user asks about a glyph that is missing, identify its Unicode code point and name, then offer nearby glyphs from the same shape or structural family as an optional set. Distinguish which related glyphs are already present from those that are missing, and do not expand the requested scope without confirmation.
+
 ## Non-Interactive Shell Commands
 
 **ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
