@@ -1,3 +1,33 @@
+# Susan Kare and the origins of Monaco
+
+[![Norman Seeff portrait of Susan Kare at Apple beside Kare's Happy Macintosh print](https://www.typeroom.eu/assets/original/2022/06/06/susan%20kare%20icons%20exhibition%20lyon%200.png)](https://www.typeroom.eu/icons-by-susan-kare-iconography-exhibition-france)
+
+*Norman Seeff, **Portrait of Susan Kare at her office at Apple** (1983), shown alongside Susan Kare, **Happy Macintosh on Orange Gradient** (2019). Image and caption via [Typeroom](https://www.typeroom.eu/icons-by-susan-kare-iconography-exhibition-france).*
+
+Susan Kare created the original Macintosh icons and bitmap typefaces, including Monaco. The English booklet for the Lyon Museum of Printing and Graphic Communication's 2022 exhibition, [*icônes / icons by Susan Kare*](https://www.imprimerie.lyon.fr/sites/micg/files/2022-05/livret_anglais_print.pdf), recounts how the fonts received their city names:
+
+> “Steve Jobs however found these names too ‘American’ and suggested instead using names of international capitals, hence Monaco, Geneva, San Francisco, Toronto, London, New York and Chicago.”
+
+The booklet explains that Kare had initially proposed names from the Philadelphia suburbs she knew as a child. [Typeroom's exhibition article](https://www.typeroom.eu/icons-by-susan-kare-iconography-exhibition-france) provides additional context on Kare's work for the Macintosh and her influence on digital iconography and type design.
+
+## Kare's breakthrough at Apple
+
+[![Susan Kare at Apple in 1983](https://images.nymag.com/news/features/beginnings/11-beginnings-susan-kare-560.jpg)](https://nymag.com/news/features/beginnings/susan-kare/index.html)
+
+*Susan Kare at Apple, 1983. Photograph by Norman Seeff; image via [New York Magazine](https://nymag.com/news/features/beginnings/susan-kare/index.html).*
+
+In New York Magazine's 2016 [“Susan Kare, Designer”](https://nymag.com/news/features/beginnings/susan-kare/index.html), Kare recalls arriving at Apple in 1982 from a fine-arts background, designing the bold system font that became Chicago on a seven-by-nine grid, and discovering an affinity for the constraints of pixel-based work. She describes how the team's Philadelphia commuter-stop font names gave way to international cities:
+
+> “If they’re going to be cities, they need to be world-class cities.”
+>
+> — Susan Kare, recalling Steve Jobs, [New York Magazine, January 12, 2016](https://nymag.com/news/features/beginnings/susan-kare/index.html)
+
+> **Full article text — editorial placeholder**
+>
+> _Paste the reviewed New York Magazine article text here._
+
+---
+
 # Claudaco
 
 **Claudaco** is a Monaco-derived monospaced terminal font patched with the Unicode and Powerline-style symbols used by Claude Code and other terminal user interfaces.
@@ -16,7 +46,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.225 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 324 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.226 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 357 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -89,7 +119,7 @@ U+FFFD  �  REPLACEMENT CHARACTER
 
 ### Latin ligatures
 
-Claudaco includes paired-letter forms from Latin Extended-D and the common typographic presentation ligatures. They preserve Monaco's native cap height, x-height, ascenders, descenders, and baseline while condensing the outlines horizontally into one fixed-width cell:
+Claudaco includes paired-letter forms from Latin Extended-D and the common typographic presentation ligatures. They preserve Monaco's native cap height, x-height, ascenders, descenders, and baseline while fitting broader, modestly overlapping letterforms into one fixed-width cell:
 
 ```text
 U+A728–U+A729  Ꜩ ꜩ  TZ
@@ -100,6 +130,20 @@ U+FB00–U+FB06  ﬀ ﬁ ﬂ ﬃ ﬄ ﬅ ﬆ
 ```
 
 Monaco already supplies `U+FB01` and `U+FB02`; Claudaco preserves those source glyphs and constructs the other 23 mappings.
+
+### Hebrew
+
+Claudaco includes the 27 unpointed Hebrew letters, including the five final forms, plus common modern punctuation, two biblical separators, and the new sheqel sign. Bidirectional ordering is handled by the terminal or application.
+
+```text
+U+05D0–U+05EA  א ב ג ד ה ו ז ח ט י ך כ ל ם מ ן נ ס ע ף פ ץ צ ק ר ש ת
+U+05BE  ־  HEBREW PUNCTUATION MAQAF
+U+05C0  ׀  HEBREW PUNCTUATION PASEQ
+U+05C3  ׃  HEBREW PUNCTUATION SOF PASUQ
+U+05F3  ׳  HEBREW PUNCTUATION GERESH
+U+05F4  ״  HEBREW PUNCTUATION GERSHAYIM
+U+20AA  ₪  NEW SHEQEL SIGN
+```
 
 ### Greek letters
 
@@ -212,14 +256,14 @@ The `E0xx` assignments are Private Use Area conventions rather than standardized
 ## Font metadata
 
 ```text
-Family name:       Claudaco 1.225
+Family name:       Claudaco 1.226
 Style:             Regular
-Full name:         Claudaco 1.225 Regular
-PostScript name:   Claudaco1225-Regular
-Version:           1.225
+Full name:         Claudaco 1.226 Regular
+PostScript name:   Claudaco1226-Regular
+Version:           1.226
 Format:            TrueType outlines
-Glyph count:       717
-Unicode mappings:  704
+Glyph count:       750
+Unicode mappings:  737
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
 ```
@@ -238,14 +282,14 @@ python -m pip install -r requirements.txt
 python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
-The generated `Claudaco-1.225-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family. After each successful default CLI build, `Claudaco-Regular.ttf` is atomically updated as a relative symlink to the generated versioned file; an explicit `--output` leaves that pointer unchanged.
+The generated `Claudaco-1.226-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family. After each successful default CLI build, `Claudaco-Regular.ttf` is atomically updated as a relative symlink to the generated versioned file; an explicit `--output` leaves that pointer unchanged.
 
 ### Audit OpenCode coverage
 
 After building the font, compare it with any OpenCode checkout:
 
 ```shell
-python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.225-Regular.ttf
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.226-Regular.ttf
 ```
 
 The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
@@ -259,40 +303,40 @@ py .\patch_claudaco.py ".\Monaco for Powerline.ttf"
 
 ## Install on Windows
 
-1. Right-click `Claudaco-1.225-Regular.ttf` and select **Install for all users**.
-2. Select **Claudaco 1.225** as the font face in the terminal or editor.
+1. Right-click `Claudaco-1.226-Regular.ttf` and select **Install for all users**.
+2. Select **Claudaco 1.226** as the font face in the terminal or editor.
 3. Fully close and reopen the application so Windows loads the new font family.
 
 If an application still shows squares, verify that it is actually using Claudaco rather than a similarly named Monaco font. Some applications also keep their own font caches until every window and background process has exited.
 
 ### Versioned families avoid stale installations
 
-Claudaco defaults to a unique family for every release. The standard build command for version 1.225 is equivalent to:
+Claudaco defaults to a unique family for every release. The standard build command for version 1.226 is equivalent to:
 
 ```powershell
 py .\patch_claudaco.py ".\Monaco for Powerline.ttf" `
-  -o ".\Claudaco-1.225-Regular.ttf" `
-  --family "Claudaco 1.225" `
-  --version "1.225"
+  -o ".\Claudaco-1.226-Regular.ttf" `
+  --family "Claudaco 1.226" `
+  --version "1.226"
 ```
 
 This creates a separate family with these identifiers:
 
 ```text
-Family name:      Claudaco 1.225
-Full name:        Claudaco 1.225 Regular
-PostScript name:  Claudaco1225-Regular
+Family name:      Claudaco 1.226
+Full name:        Claudaco 1.226 Regular
+PostScript name:  Claudaco1226-Regular
 ```
 
 For Windows Terminal, the corresponding profile setting is:
 
 ```json
 "font": {
-  "face": "Claudaco 1.225"
+  "face": "Claudaco 1.226"
 }
 ```
 
-An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.225**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
+An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.226**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
 
 ## Patcher options
 

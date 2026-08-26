@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.225`` and ``Claudaco-1.225-Regular.ttf``.
+as ``Claudaco 1.226`` and ``Claudaco-1.226-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -61,6 +61,8 @@ PRESENTATION_LIGATURES = {
     0xFB06: "st",
 }
 
+LETTER_SEQUENCE_WIDTH_FACTOR = 1.35
+
 DIRECTIONAL_TRIANGLES = {
     0x25B2: ("up", False, "regular"),
     0x25B3: ("up", True, "regular"),
@@ -97,10 +99,17 @@ EXPLICIT_CODEPOINTS = {
     *range(0x0391, 0x03A2),  # Greek capitals alpha through rho
     *range(0x03A3, 0x03AA),  # Greek capitals sigma through omega; U+03A2 is unassigned
     *range(0x03B1, 0x03CA),  # Greek lowercase alphabet, including final sigma
+    0x05BE,  # ־ HEBREW PUNCTUATION MAQAF
+    0x05C0,  # ׀ HEBREW PUNCTUATION PASEQ
+    0x05C3,  # ׃ HEBREW PUNCTUATION SOF PASUQ
+    *range(0x05D0, 0x05EB),  # Hebrew letters alef through tav, including finals
+    0x05F3,  # ׳ HEBREW PUNCTUATION GERESH
+    0x05F4,  # ״ HEBREW PUNCTUATION GERSHAYIM
     0x2003,  # EM SPACE
     0x200A,  # HAIR SPACE
     0x2011,  # ‑ NON-BREAKING HYPHEN
     0x202F,  # NARROW NO-BREAK SPACE
+    0x20AA,  # ₪ NEW SHEQEL SIGN
     0x2139,  # ℹ INFORMATION SOURCE
     0x2190,  # ← LEFTWARDS ARROW
     0x2191,  # ↑ UPWARDS ARROW
@@ -537,11 +546,15 @@ def _build_letter_sequence(sequence: str, *, horizontal_bar: bool = False) -> Bu
         cmap = font.getBestCmap()
         margin = width * 0.035
         slot = (width - 2.0 * margin) / len(sequence)
-        scale_x = 1.25 * slot / width
+        scale_x = LETTER_SEQUENCE_WIDTH_FACTOR * slot / width
         y_min = math.inf
         y_max = -math.inf
         for index, character in enumerate(sequence):
-            dx = margin + index * slot - slot * 0.125
+            dx = (
+                margin
+                + index * slot
+                - slot * (LETTER_SEQUENCE_WIDTH_FACTOR - 1.0) / 2.0
+            )
             if character == "ſ":
                 stem_x = dx + slot * 0.58
                 hook_cx = stem_x + slot * 0.14
@@ -588,6 +601,172 @@ def _build_letter_sequence(sequence: str, *, horizontal_bar: bool = False) -> Bu
                 width * 0.80,
                 bar_y + weight / 2.0,
             )
+
+    return builder
+
+
+def _build_hebrew_character(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        weight = max(110.0, _light_box_weight(width) * 1.34)
+        x0, x1 = width * 0.19, width * 0.81
+        xm = width * 0.50
+        y0, y1 = 20.0, min(1435.0, top - 70.0)
+        ym = (y0 + y1) / 2.0
+
+        def stroke(
+            ax: float, ay: float, bx: float, by: float, factor: float = 1.0
+        ) -> None:
+            _stroke_segment(pen, ax, ay, bx, by, weight * factor)
+
+        if codepoint == 0x05D0:  # alef
+            stroke(x1, y1, x0, y0)
+            stroke(x0, y1 * 0.78, xm + width * 0.03, y1 * 0.52)
+            stroke(xm - width * 0.02, y1 * 0.43, x1, y0 + 120)
+        elif codepoint == 0x05D1:  # bet
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0 + 80)
+            stroke(x1, y0 + 80, x0 - width * 0.05, y0 + 80)
+        elif codepoint == 0x05D2:  # gimel
+            stroke(x1 - width * 0.12, y1, x1 - width * 0.16, y0 + 360)
+            stroke(x1 - width * 0.16, y0 + 360, x0 + width * 0.08, y0)
+            stroke(x1 - width * 0.18, y0 + 290, x1, y0)
+        elif codepoint == 0x05D3:  # dalet
+            stroke(x0 - width * 0.03, y1, x1, y1)
+            stroke(x1 - width * 0.05, y1, x1 - width * 0.05, y0)
+        elif codepoint == 0x05D4:  # he
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0)
+            stroke(x0 + width * 0.04, y0, x0 + width * 0.04, y1 * 0.65)
+        elif codepoint == 0x05D5:  # vav
+            stroke(xm - width * 0.08, y1, x1, y1)
+            stroke(x1 - width * 0.06, y1, x1 - width * 0.06, y0)
+        elif codepoint == 0x05D6:  # zayin
+            stroke(x0 + width * 0.12, y1, x1, y1)
+            stroke(xm + width * 0.05, y1, xm - width * 0.01, y0)
+        elif codepoint == 0x05D7:  # het
+            stroke(x0, y1, x1, y1)
+            stroke(x0 + width * 0.03, y1, x0 + width * 0.03, y0)
+            stroke(x1 - width * 0.03, y1, x1 - width * 0.03, y0)
+        elif codepoint == 0x05D8:  # tet
+            stroke(x0 + width * 0.05, y1 * 0.76, x0 + width * 0.05, y0 + 170)
+            stroke(x0 + width * 0.05, y0 + 170, xm, y0)
+            stroke(xm, y0, x1, y0 + 190)
+            stroke(x1, y0 + 190, x1, y1)
+            stroke(x1, y1, xm + width * 0.05, y1)
+            stroke(xm + width * 0.05, y1, x0 + width * 0.12, y1 * 0.62)
+        elif codepoint == 0x05D9:  # yod
+            stroke(xm, y1, x1, y1)
+            stroke(x1 - width * 0.05, y1, x1 - width * 0.12, y1 * 0.63)
+        elif codepoint == 0x05DA:  # final kaf
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, bottom + 80)
+        elif codepoint == 0x05DB:  # kaf
+            stroke(x0 + width * 0.08, y1, x1, y1)
+            stroke(x1, y1, x1, y0 + 210)
+            stroke(x1, y0 + 210, x0, y0 + 70)
+        elif codepoint == 0x05DC:  # lamed
+            stroke(xm + width * 0.03, y1 + 390, x1, y1 + 390)
+            stroke(x1, y1 + 390, x1 - width * 0.08, ym)
+            stroke(x1 - width * 0.08, ym, x0 + width * 0.07, y0 + 210)
+            stroke(x0 + width * 0.07, y0 + 210, xm, y0)
+        elif codepoint == 0x05DD:  # final mem
+            _polygon_ring(
+                pen,
+                ((x0, y0), (x1, y0), (x1, y1), (x0, y1)),
+                (
+                    (x0 + weight, y0 + weight),
+                    (x1 - weight, y0 + weight),
+                    (x1 - weight, y1 - weight),
+                    (x0 + weight, y1 - weight),
+                ),
+            )
+        elif codepoint == 0x05DE:  # mem
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0)
+            stroke(x1, y0, xm - width * 0.04, y0)
+            stroke(x0, y1, xm + width * 0.05, y0 + 230)
+        elif codepoint == 0x05DF:  # final nun
+            stroke(xm + width * 0.13, y1, xm + width * 0.13, bottom + 50)
+        elif codepoint == 0x05E0:  # nun
+            stroke(x1 - width * 0.08, y1, x1 - width * 0.08, y0 + 120)
+            stroke(x1 - width * 0.08, y0 + 120, x0 + width * 0.08, y0 + 120)
+        elif codepoint == 0x05E1:  # samekh
+            _ellipse_arc_band(
+                pen,
+                xm,
+                ym,
+                width * 0.31,
+                (y1 - y0) * 0.50,
+                0,
+                2 * math.pi,
+                weight,
+                segments=28,
+            )
+        elif codepoint == 0x05E2:  # ayin
+            stroke(x0, y1, xm + width * 0.02, y0 + 120)
+            stroke(x1, y1, xm + width * 0.02, y0 + 120)
+            stroke(xm + width * 0.02, y0 + 120, x0, y0)
+        elif codepoint == 0x05E3:  # final pe
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, bottom + 70)
+            stroke(x1, y0 + 260, x0 + width * 0.08, y0 + 260)
+            stroke(x0 + width * 0.08, y0 + 260, x0 + width * 0.08, ym)
+        elif codepoint == 0x05E4:  # pe
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0 + 170)
+            stroke(x1, y0 + 170, x0, y0 + 70)
+            stroke(x0 + width * 0.12, ym + 80, xm + width * 0.12, ym + 80)
+        elif codepoint == 0x05E5:  # final tsadi
+            stroke(x0 + width * 0.05, y1, xm + width * 0.04, ym)
+            stroke(x1, y1, xm + width * 0.04, ym)
+            stroke(xm + width * 0.04, ym, xm + width * 0.13, bottom + 40)
+        elif codepoint == 0x05E6:  # tsadi
+            stroke(x0 + width * 0.05, y1, xm + width * 0.04, ym)
+            stroke(x1, y1, xm + width * 0.04, ym)
+            stroke(xm + width * 0.04, ym, x0 + width * 0.10, y0)
+            stroke(x0 + width * 0.10, y0, x1, y0)
+        elif codepoint == 0x05E7:  # qof
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0 + 250)
+            stroke(x1, y0 + 250, xm + width * 0.02, y0 + 250)
+            stroke(x0 + width * 0.08, ym, x0 + width * 0.08, bottom + 40)
+        elif codepoint == 0x05E8:  # resh
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0)
+        elif codepoint == 0x05E9:  # shin
+            stroke(x0, y1, x0 + width * 0.08, y0 + 190)
+            stroke(xm, y1, xm, y0 + 80)
+            stroke(x1, y1, x1 - width * 0.08, y0 + 190)
+            stroke(x0 + width * 0.08, y0 + 190, xm, y0)
+            stroke(x1 - width * 0.08, y0 + 190, xm, y0)
+        elif codepoint == 0x05EA:  # tav
+            stroke(x0, y1, x1, y1)
+            stroke(x1, y1, x1, y0)
+            stroke(x0 + width * 0.04, y1, x0 + width * 0.13, y0)
+        elif codepoint == 0x05BE:  # maqaf
+            _rect(pen, x0, y1 * 0.66, x1, y1 * 0.66 + weight)
+        elif codepoint == 0x05C0:  # paseq
+            _rect(pen, xm - weight / 2, y0 + 170, xm + weight / 2, y1 - 170)
+        elif codepoint == 0x05C3:  # sof pasuq
+            _circle(pen, xm, ym + 230, weight * 0.62, clockwise=True)
+            _circle(pen, xm, ym - 230, weight * 0.62, clockwise=True)
+        elif codepoint in (0x05F3, 0x05F4):  # geresh and gershayim
+            count = 1 if codepoint == 0x05F3 else 2
+            start_x = xm - (count - 1) * width * 0.11
+            for index in range(count):
+                x = start_x + index * width * 0.22
+                stroke(x + width * 0.05, y1, x - width * 0.03, y1 * 0.70)
+        elif codepoint == 0x20AA:  # new sheqel sign
+            stroke(x0, y0, x0, y1)
+            stroke(x0, y1, xm + width * 0.02, y1)
+            stroke(xm + width * 0.02, y1, xm + width * 0.02, ym)
+            stroke(x1, y1, x1, y0)
+            stroke(x1, y0, xm - width * 0.02, y0)
+            stroke(xm - width * 0.02, y0, xm - width * 0.02, ym)
+        else:
+            raise ValueError(f"Unsupported Hebrew character: U+{codepoint:04X}")
 
     return builder
 
@@ -2269,6 +2448,12 @@ def _planned_builders() -> dict[int, Builder]:
         0x200A: _build_blank,
         0x2011: _build_existing_character("-"),
         0x202F: _build_blank,
+        0x05BE: _build_hebrew_character(0x05BE),
+        0x05C0: _build_hebrew_character(0x05C0),
+        0x05C3: _build_hebrew_character(0x05C3),
+        0x05F3: _build_hebrew_character(0x05F3),
+        0x05F4: _build_hebrew_character(0x05F4),
+        0x20AA: _build_hebrew_character(0x20AA),
         0x2139: _build_circled_character("i"),
         0x2190: _build_basic_arrow(0x2190),
         0x2191: _build_basic_arrow(0x2191),
@@ -2379,6 +2564,8 @@ def _planned_builders() -> dict[int, Builder]:
         )
     for codepoint, sequence in PRESENTATION_LIGATURES.items():
         builders[codepoint] = _build_letter_sequence(sequence)
+    for codepoint in range(0x05D0, 0x05EB):
+        builders[codepoint] = _build_hebrew_character(codepoint)
     for codepoint in DIRECTIONAL_TRIANGLES:
         builders[codepoint] = _build_polygon_symbol(codepoint)
     for codepoint in ADJACENT_SQUARE_ADDITIONS:
@@ -2524,7 +2711,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.225", help="Version string (default: %(default)s)"
+        "--version", default="1.226", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",

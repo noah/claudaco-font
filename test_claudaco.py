@@ -91,6 +91,14 @@ GEOMETRIC_GREEK_CAPITALS = GREEK_CAPITALS - patch_claudaco.GREEK_CAPITAL_ASCII.k
 LATIN_LIGATURES = set(patch_claudaco.LATIN_EXTENDED_D_LIGATURES) | set(
     patch_claudaco.PRESENTATION_LIGATURES
 )
+HEBREW_ADDITIONS = set(range(0x05D0, 0x05EB)) | {
+    0x05BE,
+    0x05C0,
+    0x05C3,
+    0x05F3,
+    0x05F4,
+    0x20AA,
+}
 SURVEYED_GEOMETRIC_SHAPES = set(range(0x25B2, 0x25C6)) | {
     0x25C7,
     0x25CC,
@@ -168,7 +176,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 327)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 360)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -200,7 +208,21 @@ class GlyphBuilderTests(unittest.TestCase):
             right = self.build(right_codepoint)
             left.recalcBounds({})
             right.recalcBounds({})
-            self.assertEqual((left.xMin, left.xMax), (1229 - right.xMax, 1229 - right.xMin))
+            self.assertEqual(
+                (left.xMin, left.xMax),
+                (1229 - right.xMax, 1229 - right.xMin),
+            )
+
+    def test_core_hebrew_is_explicit_and_visible(self) -> None:
+        self.assertTrue(HEBREW_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertTrue(HEBREW_ADDITIONS <= patch_claudaco._planned_builders().keys())
+        for codepoint in HEBREW_ADDITIONS:
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertGreater(self.build(codepoint).numberOfContours, 0)
+        for codepoint in (0x05DA, 0x05DF, 0x05E3, 0x05E5):
+            glyph = self.build(codepoint)
+            glyph.recalcBounds({})
+            self.assertLess(glyph.yMin, 0)
 
     def test_upwards_white_arrow_is_outlined(self) -> None:
         self.assertIn(0x21E7, patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -269,11 +291,11 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.225",
-                version="1.225",
+                family="Claudaco 1.226",
+                version="1.226",
                 replace_existing=False,
             )
-            self.assertEqual(added, 324)
+            self.assertEqual(added, 357)
             self.assertEqual(skipped, [0x03C0, 0xFB01, 0xFB02])
             self.assertEqual(missing, [])
 
@@ -301,6 +323,11 @@ class GlyphBuilderTests(unittest.TestCase):
                 {1229},
             )
             for codepoint in LATIN_LIGATURES:
+                self.assertGreater(output["glyf"][cmap[codepoint]].numberOfContours, 0)
+            tz = output["glyf"][cmap[0xA728]]
+            self.assertGreater(tz.xMax - tz.xMin, 1100)
+            self.assertTrue(HEBREW_ADDITIONS <= cmap.keys())
+            for codepoint in HEBREW_ADDITIONS:
                 self.assertGreater(output["glyf"][cmap[codepoint]].numberOfContours, 0)
             self.assertTrue(SURVEYED_GEOMETRIC_SHAPES <= cmap.keys())
             for codepoint in SURVEYED_GEOMETRIC_SHAPES:
@@ -358,7 +385,7 @@ class GlyphBuilderTests(unittest.TestCase):
                     )[0]
                 ),
             )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.225")
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.226")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -366,8 +393,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.225",
-                version="1.225",
+                family="Claudaco 1.226",
+                version="1.226",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -508,14 +535,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.225", None, None),
-            ("Claudaco 1.225", Path("Claudaco-1.225-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.226", None, None),
+            ("Claudaco 1.226", Path("Claudaco-1.226-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.225", "Claudaco Custom", Path("custom.ttf")
+                "1.226", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )
