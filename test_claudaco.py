@@ -66,6 +66,8 @@ OPENCODE_ADDITIONS = {
 }
 
 BASIC_ARROWS = set(range(0x2190, 0x219A))
+WAVE_ZIGZAG_ARROWS = {0x219C, 0x219D, 0x21AD, 0x21AF}
+ANGLE_BRACKETS = set(range(0x276C, 0x2772)) | {0x27E8, 0x27E9}
 
 SET_THEORY_ADDITIONS = {
     0x2205,
@@ -166,7 +168,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 316)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 327)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -174,6 +176,31 @@ class GlyphBuilderTests(unittest.TestCase):
         for codepoint in BASIC_ARROWS:
             with self.subTest(codepoint=f"U+{codepoint:04X}"):
                 self.assertGreater(self.build(codepoint).numberOfContours, 0)
+
+    def test_wave_and_zigzag_arrows_are_explicit_and_visible(self) -> None:
+        self.assertTrue(WAVE_ZIGZAG_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertTrue(WAVE_ZIGZAG_ARROWS <= patch_claudaco._planned_builders().keys())
+        for codepoint in WAVE_ZIGZAG_ARROWS:
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertGreater(self.build(codepoint).numberOfContours, 0)
+
+    def test_angle_bracket_family_is_explicit_and_visible(self) -> None:
+        self.assertTrue(ANGLE_BRACKETS <= patch_claudaco.EXPLICIT_CODEPOINTS)
+        self.assertTrue(ANGLE_BRACKETS <= patch_claudaco._planned_builders().keys())
+        for codepoint in ANGLE_BRACKETS:
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertGreater(self.build(codepoint).numberOfContours, 0)
+        for left_codepoint, right_codepoint in (
+            (0x276C, 0x276D),
+            (0x276E, 0x276F),
+            (0x2770, 0x2771),
+            (0x27E8, 0x27E9),
+        ):
+            left = self.build(left_codepoint)
+            right = self.build(right_codepoint)
+            left.recalcBounds({})
+            right.recalcBounds({})
+            self.assertEqual((left.xMin, left.xMax), (1229 - right.xMax, 1229 - right.xMin))
 
     def test_upwards_white_arrow_is_outlined(self) -> None:
         self.assertIn(0x21E7, patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -242,11 +269,11 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.223",
-                version="1.223",
+                family="Claudaco 1.225",
+                version="1.225",
                 replace_existing=False,
             )
-            self.assertEqual(added, 313)
+            self.assertEqual(added, 324)
             self.assertEqual(skipped, [0x03C0, 0xFB01, 0xFB02])
             self.assertEqual(missing, [])
 
@@ -331,7 +358,7 @@ class GlyphBuilderTests(unittest.TestCase):
                     )[0]
                 ),
             )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.223")
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.225")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -339,8 +366,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.223",
-                version="1.223",
+                family="Claudaco 1.225",
+                version="1.225",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -481,14 +508,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.223", None, None),
-            ("Claudaco 1.223", Path("Claudaco-1.223-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.225", None, None),
+            ("Claudaco 1.225", Path("Claudaco-1.225-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.223", "Claudaco Custom", Path("custom.ttf")
+                "1.225", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

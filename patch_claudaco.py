@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.223`` and ``Claudaco-1.223-Regular.ttf``.
+as ``Claudaco 1.225`` and ``Claudaco-1.225-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -112,6 +112,10 @@ EXPLICIT_CODEPOINTS = {
     0x2197,  # ↗ NORTH EAST ARROW
     0x2198,  # ↘ SOUTH EAST ARROW
     0x2199,  # ↙ SOUTH WEST ARROW
+    0x219C,  # ↜ LEFTWARDS WAVE ARROW
+    0x219D,  # ↝ RIGHTWARDS WAVE ARROW
+    0x21AD,  # ↭ LEFT RIGHT WAVE ARROW
+    0x21AF,  # ↯ DOWNWARDS ZIGZAG ARROW
     0x21B3,  # ↳ DOWNWARDS ARROW WITH TIP RIGHTWARDS
     0x21BB,  # ↻ CLOCKWISE OPEN CIRCLE ARROW
     0x21C6,  # ⇆ LEFTWARDS ARROW OVER RIGHTWARDS ARROW
@@ -194,7 +198,9 @@ EXPLICIT_CODEPOINTS = {
     0x2699,  # ⚙ GEAR
     0x26A0,  # ⚠ WARNING SIGN
     0x2731,  # ✱ HEAVY ASTERISK
-    0x276F,  # ❯ HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT
+    *range(0x276C, 0x2772),  # ❬–❱ ANGLE BRACKET ORNAMENTS
+    0x27E8,  # ⟨ MATHEMATICAL LEFT ANGLE BRACKET
+    0x27E9,  # ⟩ MATHEMATICAL RIGHT ANGLE BRACKET
     0x27F3,  # ⟳ CLOCKWISE GAPPED CIRCLE ARROW
     0x2800,  # ⠀ BRAILLE PATTERN BLANK
     0x2807,  # ⠇ BRAILLE PATTERN DOTS-123
@@ -1120,6 +1126,74 @@ def _build_basic_arrow(codepoint: int) -> Builder:
     return builder
 
 
+def _build_wave_arrow(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        weight = _light_box_weight(width)
+        height = top - bottom
+        cy = bottom + height * 0.46
+        x0, x1 = width * 0.12, width * 0.88
+        amplitude = height * 0.065
+        head_x = width * 0.20
+        head_y = height * 0.105
+        segments = 16
+        points = [
+            (
+                x0 + (x1 - x0) * index / segments,
+                cy + amplitude * math.sin(4.0 * math.pi * index / segments),
+            )
+            for index in range(segments + 1)
+        ]
+        upper = []
+        lower = []
+        for index, (x, y) in enumerate(points):
+            previous = points[max(0, index - 1)]
+            following = points[min(segments, index + 1)]
+            dx = following[0] - previous[0]
+            dy = following[1] - previous[1]
+            length = math.hypot(dx, dy)
+            nx = -dy / length * weight / 2.0
+            ny = dx / length * weight / 2.0
+            upper.append((x + nx, y + ny))
+            lower.append((x - nx, y - ny))
+        _polygon(pen, (*upper, *reversed(lower)))
+
+        if codepoint in (0x219C, 0x21AD):
+            _stroke_segment(pen, x0 + head_x, cy + head_y, x0, cy, weight)
+            _stroke_segment(pen, x0 + head_x, cy - head_y, x0, cy, weight)
+        if codepoint in (0x219D, 0x21AD):
+            _stroke_segment(pen, x1 - head_x, cy + head_y, x1, cy, weight)
+            _stroke_segment(pen, x1 - head_x, cy - head_y, x1, cy, weight)
+        if codepoint not in (0x219C, 0x219D, 0x21AD):
+            raise ValueError(f"Unsupported wave arrow: U+{codepoint:04X}")
+
+    return builder
+
+
+def _build_downwards_zigzag_arrow(
+    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+) -> None:
+    weight = _light_box_weight(width)
+    height = top - bottom
+    cx = width / 2.0
+    y0, y1 = bottom + height * 0.18, bottom + height * 0.76
+    offset = width * 0.14
+    head_x = width * 0.21
+    head_y = height * 0.115
+    points = (
+        (cx, y1),
+        (cx - offset, y1 - height * 0.145),
+        (cx + offset, y1 - height * 0.29),
+        (cx - offset, y1 - height * 0.435),
+        (cx, y0),
+    )
+    for start, end in zip(points, points[1:]):
+        _stroke_segment(pen, *start, *end, weight)
+    _stroke_segment(pen, cx - head_x, y0 + head_y, cx, y0, weight)
+    _stroke_segment(pen, cx + head_x, y0 + head_y, cx, y0, weight)
+
+
 def _build_exchange_arrows(
     font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
 ) -> None:
@@ -1376,24 +1450,44 @@ def _build_play(
     _polygon(pen, ((x0, y0), (x0, y1), (x1, (y0 + y1) / 2.0)))
 
 
-def _build_heavy_chevron(
-    font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
-) -> None:
-    cx_left = width * 0.16
-    cx_mid = width * 0.78
-    y_mid = 735
-    y_low = -15
-    y_high = min(1485, top - 60)
-    thickness = max(145, width * 0.125)
-    points = (
-        (cx_left, y_low + thickness),
-        (cx_mid - thickness * 0.18, y_mid),
-        (cx_left, y_high - thickness),
-        (cx_left + thickness, y_high),
-        (cx_mid + thickness, y_mid),
-        (cx_left + thickness, y_low),
-    )
-    _polygon(pen, points)
+def _build_angle_bracket(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        left = codepoint in (0x276C, 0x276E, 0x2770, 0x27E8)
+        if codepoint in (0x276C, 0x276D):
+            base_x, tip_x = width * 0.25, width * 0.72
+            y_low, y_high = 80, min(1390, top - 80)
+            thickness = max(100, width * 0.085)
+        elif codepoint in (0x276E, 0x276F):
+            base_x, tip_x = width * 0.16, width * 0.78
+            y_low, y_high = -15, min(1485, top - 60)
+            thickness = max(145, width * 0.125)
+        elif codepoint in (0x2770, 0x2771):
+            base_x, tip_x = width * 0.24, width * 0.72
+            y_low, y_high = -45, min(1530, top - 35)
+            thickness = max(140, width * 0.12)
+        elif codepoint in (0x27E8, 0x27E9):
+            base_x, tip_x = width * 0.31, width * 0.68
+            y_low, y_high = -55, min(1540, top - 30)
+            thickness = max(78, width * 0.065)
+        else:
+            raise ValueError(f"Unsupported angle bracket: U+{codepoint:04X}")
+
+        y_mid = (y_low + y_high) / 2.0
+        points = (
+            (base_x, y_low + thickness),
+            (tip_x - thickness * 0.18, y_mid),
+            (base_x, y_high - thickness),
+            (base_x + thickness, y_high),
+            (tip_x + thickness, y_mid),
+            (base_x + thickness, y_low),
+        )
+        if left:
+            points = tuple((width - x, y) for x, y in points)
+        _polygon(pen, points)
+
+    return builder
 
 
 def _build_joined_squares(
@@ -2186,6 +2280,10 @@ def _planned_builders() -> dict[int, Builder]:
         0x2197: _build_basic_arrow(0x2197),
         0x2198: _build_basic_arrow(0x2198),
         0x2199: _build_basic_arrow(0x2199),
+        0x219C: _build_wave_arrow(0x219C),
+        0x219D: _build_wave_arrow(0x219D),
+        0x21AD: _build_wave_arrow(0x21AD),
+        0x21AF: _build_downwards_zigzag_arrow,
         0x21B3: _build_down_right_arrow,
         0x21BB: _build_clockwise_arrow,
         0x21C6: _build_exchange_arrows,
@@ -2251,7 +2349,14 @@ def _planned_builders() -> dict[int, Builder]:
         0x2699: _build_gear,
         0x26A0: _build_warning,
         0x2731: _build_heavy_asterisk,
-        0x276F: _build_heavy_chevron,
+        0x276C: _build_angle_bracket(0x276C),
+        0x276D: _build_angle_bracket(0x276D),
+        0x276E: _build_angle_bracket(0x276E),
+        0x276F: _build_angle_bracket(0x276F),
+        0x2770: _build_angle_bracket(0x2770),
+        0x2771: _build_angle_bracket(0x2771),
+        0x27E8: _build_angle_bracket(0x27E8),
+        0x27E9: _build_angle_bracket(0x27E9),
         0x27F3: _build_clockwise_arrow,
         0x29C9: _build_joined_squares,
         0x2B16: _build_polygon_symbol(0x2B16),
@@ -2419,7 +2524,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.223", help="Version string (default: %(default)s)"
+        "--version", default="1.225", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
