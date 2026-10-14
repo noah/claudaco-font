@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.226`` and ``Claudaco-1.226-Regular.ttf``.
+as ``Claudaco 1.227`` and ``Claudaco-1.227-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from typing import Callable, Iterable, Mapping, Sequence
 
 from fontTools.misc.transform import Transform
 from fontTools.pens.boundsPen import BoundsPen
+from fontTools.pens.reverseContourPen import ReverseContourPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
@@ -123,9 +124,16 @@ EXPLICIT_CODEPOINTS = {
     0x2199,  # ↙ SOUTH WEST ARROW
     0x219C,  # ↜ LEFTWARDS WAVE ARROW
     0x219D,  # ↝ RIGHTWARDS WAVE ARROW
+    0x21A9,  # ↩ LEFTWARDS ARROW WITH HOOK
+    0x21AA,  # ↪ RIGHTWARDS ARROW WITH HOOK
     0x21AD,  # ↭ LEFT RIGHT WAVE ARROW
     0x21AF,  # ↯ DOWNWARDS ZIGZAG ARROW
+    0x21B0,  # ↰ UPWARDS ARROW WITH TIP LEFTWARDS
+    0x21B1,  # ↱ UPWARDS ARROW WITH TIP RIGHTWARDS
+    0x21B2,  # ↲ DOWNWARDS ARROW WITH TIP LEFTWARDS
     0x21B3,  # ↳ DOWNWARDS ARROW WITH TIP RIGHTWARDS
+    0x21B4,  # ↴ RIGHTWARDS ARROW WITH CORNER DOWNWARDS
+    0x21B5,  # ↵ DOWNWARDS ARROW WITH CORNER LEFTWARDS
     0x21BB,  # ↻ CLOCKWISE OPEN CIRCLE ARROW
     0x21C6,  # ⇆ LEFTWARDS ARROW OVER RIGHTWARDS ARROW
     0x21E7,  # ⇧ UPWARDS WHITE ARROW
@@ -1259,6 +1267,106 @@ def _build_down_right_arrow(
     )
     _stroke_segment(pen, head_back_x, y_low + head_half, tip_x, y_low, weight * 0.82)
     _stroke_segment(pen, head_back_x, y_low - head_half, tip_x, y_low, weight * 0.82)
+
+
+def _build_bent_tip_arrow(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        if codepoint not in (0x21B0, 0x21B1, 0x21B2):
+            raise ValueError(f"Unsupported bent-tip arrow: U+{codepoint:04X}")
+        left = codepoint in (0x21B0, 0x21B2)
+        up = codepoint in (0x21B0, 0x21B1)
+        # Reflect ↳ across the cell horizontally and between its stem endpoints
+        # vertically. Keep filled contours clockwise after an odd reflection.
+        destination = ReverseContourPen(pen) if left != up else pen
+        transform = Transform(
+            -1 if left else 1,
+            0,
+            0,
+            -1 if up else 1,
+            width if left else 0,
+            2 * bottom + (top - bottom) * (0.25 + 0.71) if up else 0,
+        )
+        _build_down_right_arrow(
+            font, TransformPen(destination, transform), width, bottom, top
+        )
+
+    return builder
+
+
+def _build_corner_arrow(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        weight = _light_box_weight(width)
+        height = top - bottom
+        if codepoint == 0x21B4:
+            x_turn = width * 0.70
+            y_turn = bottom + height * 0.68
+            y_tip = bottom + height * 0.25
+            _rect(
+                pen, width * 0.14, y_turn - weight / 2,
+                x_turn + weight / 2, y_turn + weight / 2,
+            )
+            _rect(
+                pen, x_turn - weight / 2, y_tip + weight * 0.45,
+                x_turn + weight / 2, y_turn,
+            )
+            for x_back in (x_turn - width * 0.22, x_turn + width * 0.22):
+                _stroke_segment(
+                    pen, x_back, y_tip + height * 0.15,
+                    x_turn, y_tip, weight * 0.82,
+                )
+        elif codepoint == 0x21B5:
+            # ↵ has a broad horizontal return stroke and a shorter vertical
+            # tail than the long downward stem of ↲.
+            x_turn = width * 0.80
+            x_tip = width * 0.14
+            y_turn = bottom + height * 0.37
+            _rect(
+                pen, x_turn - weight / 2, y_turn,
+                x_turn + weight / 2, bottom + height * 0.71,
+            )
+            _rect(
+                pen, x_tip + weight * 0.45, y_turn - weight / 2,
+                x_turn + weight / 2, y_turn + weight / 2,
+            )
+            for y_back in (y_turn - height * 0.10, y_turn + height * 0.10):
+                _stroke_segment(
+                    pen, width * 0.38, y_back, x_tip, y_turn, weight * 0.82
+                )
+        else:
+            raise ValueError(f"Unsupported corner arrow: U+{codepoint:04X}")
+
+    return builder
+
+
+def _build_hook_arrow(codepoint: int) -> Builder:
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        if codepoint not in (0x21A9, 0x21AA):
+            raise ValueError(f"Unsupported hook arrow: U+{codepoint:04X}")
+        if codepoint == 0x21AA:
+            pen = TransformPen(ReverseContourPen(pen), Transform(-1, 0, 0, 1, width, 0))
+        weight = _light_box_weight(width)
+        height = top - bottom
+        x_tip = width * 0.14
+        x_hook = width * 0.70
+        y = bottom + height * 0.42
+        radius_y = height * 0.10
+        _rect(pen, x_tip + weight * 0.45, y - weight / 2, x_hook, y + weight / 2)
+        _ellipse_arc_band(
+            pen, x_hook, y + radius_y, width * 0.16, radius_y,
+            math.pi / 2, -math.pi / 2, weight,
+        )
+        for y_back in (y - height * 0.10, y + height * 0.10):
+            _stroke_segment(
+                pen, width * 0.38, y_back, x_tip, y, weight * 0.82
+            )
+
+    return builder
 
 
 def _build_basic_arrow(codepoint: int) -> Builder:
@@ -2467,9 +2575,16 @@ def _planned_builders() -> dict[int, Builder]:
         0x2199: _build_basic_arrow(0x2199),
         0x219C: _build_wave_arrow(0x219C),
         0x219D: _build_wave_arrow(0x219D),
+        0x21A9: _build_hook_arrow(0x21A9),
+        0x21AA: _build_hook_arrow(0x21AA),
         0x21AD: _build_wave_arrow(0x21AD),
         0x21AF: _build_downwards_zigzag_arrow,
+        0x21B0: _build_bent_tip_arrow(0x21B0),
+        0x21B1: _build_bent_tip_arrow(0x21B1),
+        0x21B2: _build_bent_tip_arrow(0x21B2),
         0x21B3: _build_down_right_arrow,
+        0x21B4: _build_corner_arrow(0x21B4),
+        0x21B5: _build_corner_arrow(0x21B5),
         0x21BB: _build_clockwise_arrow,
         0x21C6: _build_exchange_arrows,
         0x21E7: _build_upwards_white_arrow,
@@ -2711,7 +2826,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.226", help="Version string (default: %(default)s)"
+        "--version", default="1.227", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
