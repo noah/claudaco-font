@@ -12,10 +12,6 @@ The booklet explains that Kare had initially proposed names from the Philadelphi
 
 ## Kare's breakthrough at Apple
 
-[![Susan Kare at Apple in 1983](https://images.nymag.com/news/features/beginnings/11-beginnings-susan-kare-560.jpg)](https://nymag.com/news/features/beginnings/susan-kare/index.html)
-
-*Susan Kare at Apple, 1983. Photograph by Norman Seeff; image via [New York Magazine](https://nymag.com/news/features/beginnings/susan-kare/index.html).*
-
 In New York Magazine's 2016 [“Susan Kare, Designer”](https://nymag.com/news/features/beginnings/susan-kare/index.html), Kare recalls arriving at Apple in 1982 from a fine-arts background, designing the bold system font that became Chicago on a seven-by-nine grid, and discovering an affinity for the constraints of pixel-based work. She describes how the team's Philadelphia commuter-stop font names gave way to international cities:
 
 
@@ -74,7 +70,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.227 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 364 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.228 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 367 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -87,6 +83,14 @@ Claudaco is **not** the historical bitmap-strike version of Monaco. The supplied
 Claudaco is also not a complete Nerd Font. It deliberately adds a focused terminal repertoire instead of thousands of unrelated icons. It is an unofficial personal patch, not a release by Anthropic, Apple, the Powerline project, or any other font vendor.
 
 ## Included glyph coverage
+
+### Full-page font specimen
+
+This specimen is rendered directly from **Claudaco 1.228**. It includes pangrams, a terminal panel, Greek and Hebrew alphabets, mathematical expressions, and all **747 Unicode mappings**, each labeled with its hexadecimal code point. Space characters and the blank Braille cell are labeled in the chart.
+
+[![Full-page Claudaco 1.228 specimen with pangrams, terminal examples, and the complete Unicode character chart](docs/claudaco-specimen.png)](docs/claudaco-specimen.png)
+
+[Open the full-resolution specimen](docs/claudaco-specimen.png) to inspect individual glyphs.
 
 ### Claude Code and terminal symbols
 
@@ -101,6 +105,7 @@ U+21B5  ↵  DOWNWARDS ARROW WITH CORNER LEFTWARDS
 U+21BB  ↻  CLOCKWISE OPEN CIRCLE ARROW
 U+21C6  ⇆  LEFTWARDS ARROW OVER RIGHTWARDS ARROW
 U+21E7  ⇧  UPWARDS WHITE ARROW
+U+2218  ∘  RING OPERATOR
 U+2299  ⊙  CIRCLED DOT OPERATOR
 U+22EE  ⋮  VERTICAL ELLIPSIS
 U+22EF  ⋯  MIDLINE HORIZONTAL ELLIPSIS
@@ -124,9 +129,11 @@ U+25CF  ●  BLACK CIRCLE
 U+25D0  ◐  CIRCLE WITH LEFT HALF BLACK
 U+25D4  ◔  CIRCLE WITH UPPER RIGHT QUADRANT BLACK
 U+25E2–U+25E5  ◢ ◣ ◤ ◥  CORNER TRIANGLES
+U+25E6  ◦  WHITE BULLET
 U+25FB  ◻  WHITE MEDIUM SQUARE
 U+2699  ⚙  GEAR
 U+26A0  ⚠  WARNING SIGN
+U+26AC  ⚬  MEDIUM SMALL WHITE CIRCLE
 U+2731  ✱  HEAVY ASTERISK
 U+276C–U+2771  ❬ ❭ ❮ ❯ ❰ ❱  ANGLE BRACKET ORNAMENTS
 U+27E8–U+27E9  ⟨ ⟩  MATHEMATICAL ANGLE BRACKETS
@@ -145,6 +152,8 @@ U+FFFD  �  REPLACEMENT CHARACTER
 `U+23BF` has an unusual formal Unicode name, but Claude Code uses it visually as an indented branch or continuation marker.
 
 `U+F0A7` and `U+F0B7` are common private-use mappings for square and round bullets. Claudaco renders the round bullet with the same proportions as Monaco's `U+2022 BULLET`.
+
+`∘`, `◦`, and `⚬` are hollow circles with progressively larger diameters, all smaller than `○`. The white bullet `◦` shares the vertical center of Monaco's `•`; the ring operator `∘` and medium small white circle `⚬` align with Claudaco's other circle symbols.
 
 `U+FFFD` uses the conventional outlined-diamond form with Monaco's own question mark fitted inside.
 
@@ -287,14 +296,14 @@ The `E0xx` assignments are Private Use Area conventions rather than standardized
 ## Font metadata
 
 ```text
-Family name:       Claudaco 1.227
+Family name:       Claudaco 1.228
 Style:             Regular
-Full name:         Claudaco 1.227 Regular
-PostScript name:   Claudaco1227-Regular
-Version:           1.227
+Full name:         Claudaco 1.228 Regular
+PostScript name:   Claudaco1228-Regular
+Version:           1.228
 Format:            TrueType outlines
-Glyph count:       757
-Unicode mappings:  744
+Glyph count:       760
+Unicode mappings:  747
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
 ```
@@ -313,14 +322,25 @@ python -m pip install -r requirements.txt
 python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
-The generated `Claudaco-1.227-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family. After each successful default CLI build, `Claudaco-Regular.ttf` is atomically updated as a relative symlink to the generated versioned file; an explicit `--output` leaves that pointer unchanged.
+The generated `Claudaco-1.228-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family. After each successful default CLI build, `Claudaco-Regular.ttf` is atomically updated as a relative symlink to the generated versioned file; an explicit `--output` leaves that pointer unchanged.
+
+### Regenerate the specimen
+
+The README specimen is a PNG, so it displays Claudaco even when the font is not installed on the reader's machine. After rebuilding the font, regenerate it with:
+
+```shell
+python -m pip install -r requirements-specimen.txt
+python render_specimen.py Claudaco-1.228-Regular.ttf
+```
+
+The renderer writes `docs/claudaco-specimen.png`, deriving the version, counts, and character chart from the supplied font. Omit the font argument to use `Claudaco-Regular.ttf`. Pillow is required only for specimen rendering.
 
 ### Audit OpenCode coverage
 
 After building the font, compare it with any OpenCode checkout:
 
 ```shell
-python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.227-Regular.ttf
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.228-Regular.ttf
 ```
 
 The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
@@ -334,40 +354,40 @@ py .\patch_claudaco.py ".\Monaco for Powerline.ttf"
 
 ## Install on Windows
 
-1. Right-click `Claudaco-1.227-Regular.ttf` and select **Install for all users**.
-2. Select **Claudaco 1.227** as the font face in the terminal or editor.
+1. Right-click `Claudaco-1.228-Regular.ttf` and select **Install for all users**.
+2. Select **Claudaco 1.228** as the font face in the terminal or editor.
 3. Fully close and reopen the application so Windows loads the new font family.
 
 If an application still shows squares, verify that it is actually using Claudaco rather than a similarly named Monaco font. Some applications also keep their own font caches until every window and background process has exited.
 
 ### Versioned families avoid stale installations
 
-Claudaco defaults to a unique family for every release. The standard build command for version 1.227 is equivalent to:
+Claudaco defaults to a unique family for every release. The standard build command for version 1.228 is equivalent to:
 
 ```powershell
 py .\patch_claudaco.py ".\Monaco for Powerline.ttf" `
-  -o ".\Claudaco-1.227-Regular.ttf" `
-  --family "Claudaco 1.227" `
-  --version "1.227"
+  -o ".\Claudaco-1.228-Regular.ttf" `
+  --family "Claudaco 1.228" `
+  --version "1.228"
 ```
 
 This creates a separate family with these identifiers:
 
 ```text
-Family name:      Claudaco 1.227
-Full name:        Claudaco 1.227 Regular
-PostScript name:  Claudaco1227-Regular
+Family name:      Claudaco 1.228
+Full name:        Claudaco 1.228 Regular
+PostScript name:  Claudaco1228-Regular
 ```
 
 For Windows Terminal, the corresponding profile setting is:
 
 ```json
 "font": {
-  "face": "Claudaco 1.227"
+  "face": "Claudaco 1.228"
 }
 ```
 
-An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.227**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
+An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.228**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
 
 ## Patcher options
 
@@ -433,7 +453,10 @@ The Claudaco name and patch are unofficial and are not endorsed by or affiliated
 patch_claudaco.py      Reproducible TrueType patcher
 audit_opencode_glyphs.py  OpenCode source-to-cmap coverage audit
 test_claudaco.py        Source-font-independent builder regression tests
+render_specimen.py      Reproducible full-page font specimen renderer
+docs/claudaco-specimen.png  Rendered pangrams, examples, and Unicode character chart
 requirements.txt       Python dependency
+requirements-specimen.txt  Optional specimen-rendering dependencies
 README.md              Documentation and glyph reference
 LICENSE                MIT license for the patcher and documentation
 .gitignore             Excludes local input and generated fonts
@@ -443,3 +466,9 @@ LICENSE                MIT license for the patcher and documentation
 ## License
 
 The original patcher and documentation are available under the [MIT License](LICENSE). This license does not cover Monaco, the source font, or generated font binaries. See [Provenance and redistribution](#provenance-and-redistribution).
+
+---
+
+[![Susan Kare at Apple in 1983](https://images.nymag.com/news/features/beginnings/11-beginnings-susan-kare-560.jpg)](https://nymag.com/news/features/beginnings/susan-kare/index.html)
+
+*Susan Kare at Apple, 1983. Photograph by Norman Seeff; image via [New York Magazine](https://nymag.com/news/features/beginnings/susan-kare/index.html).*

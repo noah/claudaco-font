@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.227`` and ``Claudaco-1.227-Regular.ttf``.
+as ``Claudaco 1.228`` and ``Claudaco-1.228-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -142,6 +142,7 @@ EXPLICIT_CODEPOINTS = {
     0x2209,  # ∉ NOT AN ELEMENT OF
     0x220B,  # ∋ CONTAINS AS MEMBER
     0x220C,  # ∌ DOES NOT CONTAIN AS MEMBER
+    0x2218,  # ∘ RING OPERATOR
     0x2229,  # ∩ INTERSECTION
     0x222A,  # ∪ UNION
     0x2282,  # ⊂ SUBSET OF
@@ -211,9 +212,11 @@ EXPLICIT_CODEPOINTS = {
     0x25CC,  # ◌ DOTTED CIRCLE
     0x25CE,  # ◎ BULLSEYE
     *range(0x25E2, 0x25E6),  # Corner triangles
+    0x25E6,  # ◦ WHITE BULLET
     0x25FB,  # ◻ WHITE MEDIUM SQUARE
     0x2699,  # ⚙ GEAR
     0x26A0,  # ⚠ WARNING SIGN
+    0x26AC,  # ⚬ MEDIUM SMALL WHITE CIRCLE
     0x2731,  # ✱ HEAVY ASTERISK
     *range(0x276C, 0x2772),  # ❬–❱ ANGLE BRACKET ORNAMENTS
     0x27E8,  # ⟨ MATHEMATICAL LEFT ANGLE BRACKET
@@ -1895,8 +1898,14 @@ def _build_circle_symbol(codepoint: int) -> Builder:
     ) -> None:
         cx = width / 2.0
         cy = bottom + (top - bottom) * 0.42
-        radius = width * 0.39
-        stroke = max(84.0, width * 0.072)
+        if codepoint == 0x25E6:
+            # Match the vertical center of Monaco's bullet and our PUA bullet.
+            cy = (bottom + top) / 2.0
+        radius = width * {0x2218: 0.14, 0x25E6: 0.22, 0x26AC: 0.29}.get(
+            codepoint, 0.39
+        )
+        # Keep an open counter even in the smallest ring operator.
+        stroke = min(radius * 0.40, max(84.0, width * 0.072))
         inner = radius - stroke
 
         if codepoint == 0x25CF:  # black circle
@@ -1921,7 +1930,7 @@ def _build_circle_symbol(codepoint: int) -> Builder:
             _filled_circle_sector(pen, cx, cy, inner, 0.0, math.pi / 2.0)
         elif codepoint == 0x25CE:  # bullseye
             _ring(pen, cx, cy, width * 0.18, width * 0.10)
-        elif codepoint != 0x25CB:
+        elif codepoint not in (0x2218, 0x25CB, 0x25E6, 0x26AC):
             raise ValueError(f"Unsupported circle symbol: U+{codepoint:04X}")
 
     return builder
@@ -2593,6 +2602,7 @@ def _planned_builders() -> dict[int, Builder]:
         0x2209: _build_membership(0x2209),
         0x220B: _build_membership(0x220B),
         0x220C: _build_membership(0x220C),
+        0x2218: _build_circle_symbol(0x2218),
         0x2229: _build_set_union(0x2229),
         0x222A: _build_set_union(0x222A),
         0x2282: _build_subset_relation(0x2282),
@@ -2645,9 +2655,11 @@ def _planned_builders() -> dict[int, Builder]:
         0x25E3: _build_corner_triangle(0x25E3),
         0x25E4: _build_corner_triangle(0x25E4),
         0x25E5: _build_corner_triangle(0x25E5),
+        0x25E6: _build_circle_symbol(0x25E6),
         0x25FB: _build_white_medium_square,
         0x2699: _build_gear,
         0x26A0: _build_warning,
+        0x26AC: _build_circle_symbol(0x26AC),
         0x2731: _build_heavy_asterisk,
         0x276C: _build_angle_bracket(0x276C),
         0x276D: _build_angle_bracket(0x276D),
@@ -2826,7 +2838,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.227", help="Version string (default: %(default)s)"
+        "--version", default="1.228", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
