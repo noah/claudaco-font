@@ -128,6 +128,7 @@ def render_specimen(font_path: Path, output_path: Path, scale: int = 2) -> None:
     text(924, 985, "Hebrew alphabet in Unicode order", 14, muted)
     text(924, 1030, "f ∘ g   ∅ ⊆ A   α β γ ∈ A   A ∩ B", 26)
     text(924, 1087, "◦ • ∘ ⚬ ○ ●   ← ↑ → ↓   ﬀ ﬁ ﬂ ﬃ ﬄ", 26)
+    text(924, 1144, "Έντονα Πλάγια · Полужирный Курсив", 26)
 
     line(margin, 1196, width - margin, 1196, accent)
     text(margin, 1230, "02 / EVERY CHARACTER", 28)

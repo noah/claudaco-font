@@ -111,6 +111,7 @@ SURVEYED_GEOMETRIC_SHAPES = set(range(0x25B2, 0x25C6)) | {
 }
 ADJACENT_SQUARE_FAMILY = set(range(0x25A0, 0x25B0))
 SMALL_CIRCLE_ADDITIONS = {0x2218, 0x25E6, 0x26AC}
+FONT_STYLE_GAPS = set(map(ord, "ΈάКОПбвжийлнорсучы"))
 
 
 class GlyphBuilderTests(unittest.TestCase):
@@ -178,7 +179,7 @@ class GlyphBuilderTests(unittest.TestCase):
         self.assertEqual(len(OPENCODE_ADDITIONS), 47)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco.EXPLICIT_CODEPOINTS)
         self.assertTrue(OPENCODE_ADDITIONS <= patch_claudaco._planned_builders().keys())
-        self.assertEqual(len(patch_claudaco._planned_builders()), 370)
+        self.assertEqual(len(patch_claudaco._planned_builders()), 388)
 
     def test_basic_arrows_are_explicit_and_visible(self) -> None:
         self.assertTrue(BASIC_ARROWS <= patch_claudaco.EXPLICIT_CODEPOINTS)
@@ -309,11 +310,11 @@ class GlyphBuilderTests(unittest.TestCase):
             added, skipped, missing = patch_claudaco.patch_font(
                 source_path,
                 output_path,
-                family="Claudaco 1.228",
-                version="1.228",
+                family="Claudaco 1.229",
+                version="1.229",
                 replace_existing=False,
             )
-            self.assertEqual(added, 367)
+            self.assertEqual(added, 385)
             self.assertEqual(skipped, [0x03C0, 0xFB01, 0xFB02])
             self.assertEqual(missing, [])
 
@@ -415,7 +416,7 @@ class GlyphBuilderTests(unittest.TestCase):
                     )[0]
                 ),
             )
-            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.228")
+            self.assertEqual(output["name"].getDebugName(1), "Claudaco 1.229")
             self.assertEqual(
                 list(output["glyf"]["pi"].getCoordinates(output["glyf"])[0]), source_pi
             )
@@ -423,8 +424,8 @@ class GlyphBuilderTests(unittest.TestCase):
             patch_claudaco.patch_font(
                 source_path,
                 replacement_path,
-                family="Claudaco 1.228",
-                version="1.228",
+                family="Claudaco 1.229",
+                version="1.229",
                 replace_existing=True,
             )
             replacement = TTFont(replacement_path)
@@ -432,6 +433,53 @@ class GlyphBuilderTests(unittest.TestCase):
                 list(replacement["glyf"]["pi"].getCoordinates(replacement["glyf"])[0]),
                 source_pi,
             )
+
+    def test_localized_font_style_letters_survive_serialization(self) -> None:
+        self.assertEqual(len(FONT_STYLE_GAPS), 18)
+        self.assertTrue(FONT_STYLE_GAPS <= patch_claudaco.EXPLICIT_CODEPOINTS)
+        with TemporaryDirectory() as directory:
+            source_path = Path(directory) / "source.ttf"
+            output_path = Path(directory) / "output.ttf"
+            self.build_source_font(source_path)
+            patch_claudaco.patch_font(
+                source_path, output_path, family="Claudaco 1.229",
+                version="1.229", replace_existing=False,
+            )
+            with TTFont(output_path) as output:
+                cmap, glyf = output.getBestCmap(), output["glyf"]
+                self.assertTrue(FONT_STYLE_GAPS <= cmap.keys())
+                for codepoint in FONT_STYLE_GAPS:
+                    with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                        name = cmap[codepoint]
+                        glyph = glyf[name]
+                        self.assertGreater(glyph.numberOfContours, 0)
+                        self.assertEqual(output["hmtx"].metrics[name][0], 1229)
+                        self.assertGreaterEqual(glyph.xMin, 0)
+                        self.assertLessEqual(glyph.xMax, 1229)
+                        self.assertGreaterEqual(glyph.yMin, output["hhea"].descent)
+                        self.assertLessEqual(glyph.yMax, output["hhea"].ascent)
+
+                # Lowercase accents add ink above an otherwise unchanged base.
+                for accented, base in (("ά", "α"), ("й", "и")):
+                    accent_glyph = glyf[cmap[ord(accented)]]
+                    base_glyph = glyf[cmap[ord(base)]]
+                    base_coordinates = list(base_glyph.getCoordinates(glyf)[0])
+                    self.assertEqual(
+                        list(accent_glyph.getCoordinates(glyf)[0])[:len(base_coordinates)],
+                        base_coordinates,
+                    )
+                    self.assertGreater(accent_glyph.yMax, base_glyph.yMax)
+                    self.assertGreater(accent_glyph.numberOfContours, base_glyph.numberOfContours)
+
+                # Capital tonos stays to the left of the compressed capital.
+                epsilon = glyf[cmap[ord("E")]]
+                accented = glyf[cmap[ord("Έ")]]
+                self.assertEqual(accented.numberOfContours, epsilon.numberOfContours + 1)
+                for cyrillic, latin in (("К", "K"), ("О", "O"), ("о", "o"), ("р", "p"), ("с", "c"), ("у", "y")):
+                    self.assertEqual(
+                        glyf[cmap[ord(cyrillic)]].getCoordinates(glyf),
+                        glyf[cmap[ord(latin)]].getCoordinates(glyf),
+                    )
 
     def test_visible_opencode_additions_have_outlines(self) -> None:
         for codepoint in OPENCODE_ADDITIONS - {0x2800}:
@@ -594,14 +642,14 @@ class GlyphBuilderTests(unittest.TestCase):
 
     def test_default_build_identity_is_versioned(self) -> None:
         self.assertEqual(
-            patch_claudaco._resolve_build_identity("1.228", None, None),
-            ("Claudaco 1.228", Path("Claudaco-1.228-Regular.ttf")),
+            patch_claudaco._resolve_build_identity("1.229", None, None),
+            ("Claudaco 1.229", Path("Claudaco-1.229-Regular.ttf")),
         )
 
     def test_build_identity_allows_explicit_overrides(self) -> None:
         self.assertEqual(
             patch_claudaco._resolve_build_identity(
-                "1.228", "Claudaco Custom", Path("custom.ttf")
+                "1.229", "Claudaco Custom", Path("custom.ttf")
             ),
             ("Claudaco Custom", Path("custom.ttf")),
         )

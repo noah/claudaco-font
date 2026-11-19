@@ -70,7 +70,7 @@ Claudaco exists for a specific reason: Monaco has a compact, highly readable pro
 
 ## What Claudaco is
 
-Claudaco 1.228 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 367 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
+Claudaco 1.229 is built from a user-supplied copy of **Monaco for Powerline 2.0**. The patch adds 385 glyphs while preserving Monaco’s original character metrics and the Powerline separators already present in the source font.
 
 The added symbols are not copied from a second donor font. `patch_claudaco.py` constructs them from geometric TrueType outlines. Circled letters and digits reuse the source font’s own alphanumeric forms inside newly drawn circles. This keeps the additions visually related to the underlying Monaco face and avoids mixing unrelated font designs.
 
@@ -86,9 +86,9 @@ Claudaco is also not a complete Nerd Font. It deliberately adds a focused termin
 
 ### Full-page font specimen
 
-This specimen is rendered directly from **Claudaco 1.228**. It includes pangrams, a terminal panel, Greek and Hebrew alphabets, mathematical expressions, and all **747 Unicode mappings**, each labeled with its hexadecimal code point. Space characters and the blank Braille cell are labeled in the chart.
+This specimen is rendered directly from **Claudaco 1.229**. It includes pangrams, a terminal panel, Greek and Hebrew alphabets, Greek and Cyrillic font-style labels, mathematical expressions, and all **765 Unicode mappings**, each labeled with its hexadecimal code point. Space characters and the blank Braille cell are labeled in the chart.
 
-[![Full-page Claudaco 1.228 specimen with pangrams, terminal examples, and the complete Unicode character chart](docs/claudaco-specimen.png)](docs/claudaco-specimen.png)
+[![Full-page Claudaco 1.229 specimen with pangrams, terminal examples, and the complete Unicode character chart](docs/claudaco-specimen.png)](docs/claudaco-specimen.png)
 
 [Open the full-resolution specimen](docs/claudaco-specimen.png) to inspect individual glyphs.
 
@@ -195,6 +195,40 @@ U+03B1–U+03C9  α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ ς σ τ υ 
 
 This covers the complete modern Greek uppercase and lowercase alphabets, including `U+03C2 GREEK SMALL LETTER FINAL SIGMA`. `U+03A2` is unassigned by Unicode. Capitals shared with Latin reuse Monaco's own outlines, Monaco's existing `π` mapping is preserved, and the distinct Greek forms use Claudaco's geometric outlines.
 
+The accented letters observed in localized font-style names are also included:
+
+```text
+U+0388  Έ  GREEK CAPITAL LETTER EPSILON WITH TONOS
+U+03AC  ά  GREEK SMALL LETTER ALPHA WITH TONOS
+```
+
+These cover `Έντονα`, `Πλάγια`, and `Κανονικά`. Capital tonos sits beside the upper left of the letter; lowercase tonos sits above the base. Other Greek accented and diaeresis letters are not yet included. Character names follow the [Unicode Greek and Coptic chart](https://www.unicode.org/charts/PDF/U0370.pdf).
+
+### Cyrillic letters in localized font-style names
+
+Claudaco 1.229 adds the 16 Cyrillic letters needed for `Полужирный`, `Курсив`, and `Обычный` in the reported font listing:
+
+```text
+U+041A  К  CYRILLIC CAPITAL LETTER KA
+U+041E  О  CYRILLIC CAPITAL LETTER O
+U+041F  П  CYRILLIC CAPITAL LETTER PE
+U+0431  б  CYRILLIC SMALL LETTER BE
+U+0432  в  CYRILLIC SMALL LETTER VE
+U+0436  ж  CYRILLIC SMALL LETTER ZHE
+U+0438  и  CYRILLIC SMALL LETTER I
+U+0439  й  CYRILLIC SMALL LETTER SHORT I
+U+043B  л  CYRILLIC SMALL LETTER EL
+U+043D  н  CYRILLIC SMALL LETTER EN
+U+043E  о  CYRILLIC SMALL LETTER O
+U+0440  р  CYRILLIC SMALL LETTER ER
+U+0441  с  CYRILLIC SMALL LETTER ES
+U+0443  у  CYRILLIC SMALL LETTER U
+U+0447  ч  CYRILLIC SMALL LETTER CHE
+U+044B  ы  CYRILLIC SMALL LETTER YERU
+```
+
+Shared letter shapes reuse Monaco's Latin outlines; the other forms use scaled source letters or geometric outlines aligned to Monaco's cap height and x-height. All retain the standard 1,229-unit cell width. This is partial Cyrillic coverage, not the full Russian alphabet. Character names follow the [Unicode Cyrillic chart](https://www.unicode.org/charts/PDF/U0400.pdf).
+
 ### Set theory
 
 Claudaco includes the basic membership, union, intersection, subset, and superset operators, including negated forms and the subset-or-equal and superset-or-equal variants:
@@ -296,14 +330,14 @@ The `E0xx` assignments are Private Use Area conventions rather than standardized
 ## Font metadata
 
 ```text
-Family name:       Claudaco 1.228
+Family name:       Claudaco 1.229
 Style:             Regular
-Full name:         Claudaco 1.228 Regular
-PostScript name:   Claudaco1228-Regular
-Version:           1.228
+Full name:         Claudaco 1.229 Regular
+PostScript name:   Claudaco1229-Regular
+Version:           1.229
 Format:            TrueType outlines
-Glyph count:       760
-Unicode mappings:  747
+Glyph count:       778
+Unicode mappings:  765
 Advance width:     1229 units for every glyph
 Embedded bitmaps:  None
 ```
@@ -322,7 +356,7 @@ python -m pip install -r requirements.txt
 python patch_claudaco.py "Monaco for Powerline.ttf"
 ```
 
-The generated `Claudaco-1.228-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family. After each successful default CLI build, `Claudaco-Regular.ttf` is atomically updated as a relative symlink to the generated versioned file; an explicit `--output` leaves that pointer unchanged.
+The generated `Claudaco-1.229-Regular.ttf` remains on your machine and is ignored by Git. Both its filename and installed family include the version so Windows treats future releases as separate fonts instead of reusing a cached family. After each successful default CLI build, `Claudaco-Regular.ttf` is atomically updated as a relative symlink to the generated versioned file; an explicit `--output` leaves that pointer unchanged.
 
 ### Regenerate the specimen
 
@@ -330,7 +364,7 @@ The README specimen is a PNG, so it displays Claudaco even when the font is not 
 
 ```shell
 python -m pip install -r requirements-specimen.txt
-python render_specimen.py Claudaco-1.228-Regular.ttf
+python render_specimen.py Claudaco-1.229-Regular.ttf
 ```
 
 The renderer writes `docs/claudaco-specimen.png`, deriving the version, counts, and character chart from the supplied font. Omit the font argument to use `Claudaco-Regular.ttf`. Pillow is required only for specimen rendering.
@@ -340,7 +374,7 @@ The renderer writes `docs/claudaco-specimen.png`, deriving the version, counts, 
 After building the font, compare it with any OpenCode checkout:
 
 ```shell
-python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.228-Regular.ttf
+python audit_opencode_glyphs.py /path/to/opencode Claudaco-1.229-Regular.ttf
 ```
 
 The audit conservatively scans every non-ASCII code point in OpenCode's terminal-owned UI and CLI source directories, reports uncovered mappings or empty visible outlines with source locations, and exits unsuccessfully on a gap. The intentional CJK text in OpenCode's terminal demo is excluded only while it remains confined to that demo because it should use normal font fallback.
@@ -354,40 +388,40 @@ py .\patch_claudaco.py ".\Monaco for Powerline.ttf"
 
 ## Install on Windows
 
-1. Right-click `Claudaco-1.228-Regular.ttf` and select **Install for all users**.
-2. Select **Claudaco 1.228** as the font face in the terminal or editor.
+1. Right-click `Claudaco-1.229-Regular.ttf` and select **Install for all users**.
+2. Select **Claudaco 1.229** as the font face in the terminal or editor.
 3. Fully close and reopen the application so Windows loads the new font family.
 
 If an application still shows squares, verify that it is actually using Claudaco rather than a similarly named Monaco font. Some applications also keep their own font caches until every window and background process has exited.
 
 ### Versioned families avoid stale installations
 
-Claudaco defaults to a unique family for every release. The standard build command for version 1.228 is equivalent to:
+Claudaco defaults to a unique family for every release. The standard build command for version 1.229 is equivalent to:
 
 ```powershell
 py .\patch_claudaco.py ".\Monaco for Powerline.ttf" `
-  -o ".\Claudaco-1.228-Regular.ttf" `
-  --family "Claudaco 1.228" `
-  --version "1.228"
+  -o ".\Claudaco-1.229-Regular.ttf" `
+  --family "Claudaco 1.229" `
+  --version "1.229"
 ```
 
 This creates a separate family with these identifiers:
 
 ```text
-Family name:      Claudaco 1.228
-Full name:        Claudaco 1.228 Regular
-PostScript name:  Claudaco1228-Regular
+Family name:      Claudaco 1.229
+Full name:        Claudaco 1.229 Regular
+PostScript name:  Claudaco1229-Regular
 ```
 
 For Windows Terminal, the corresponding profile setting is:
 
 ```json
 "font": {
-  "face": "Claudaco 1.228"
+  "face": "Claudaco 1.229"
 }
 ```
 
-An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.228**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
+An older **Claudaco** entry can remain installed or hidden; it does not conflict with **Claudaco 1.229**. A **Hide**-only entry is commonly a system-wide installation that the current user cannot remove through Settings. If removal is still desirable, close every application using the font and open the legacy Fonts control panel with `shell:fonts`; an administrator may be able to delete it there. Per-user fonts live under `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, while all-user fonts live under `C:\Windows\Fonts`. Leaving the old family alone is safer than manually deleting font files or registry entries.
 
 ## Patcher options
 

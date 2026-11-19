@@ -11,7 +11,7 @@ Usage (PowerShell or cmd.exe):
     py patch_claudaco.py "Monaco for Powerline.ttf"
 
 The default version creates a separately installable family and filename, such
-as ``Claudaco 1.228`` and ``Claudaco-1.228-Regular.ttf``.
+as ``Claudaco 1.229`` and ``Claudaco-1.229-Regular.ttf``.
 """
 
 from __future__ import annotations
@@ -93,13 +93,48 @@ ADJACENT_SQUARE_ADDITIONS = {
     *range(0x25A4, 0x25B0),
 }
 
+GREEK_ACCENTED_LETTERS = {
+    0x0388: 0x0395,  # Έ GREEK CAPITAL LETTER EPSILON WITH TONOS
+    0x03AC: 0x03B1,  # ά GREEK SMALL LETTER ALPHA WITH TONOS
+}
+
+CYRILLIC_LETTERS = {
+    0x041A,  # К CYRILLIC CAPITAL LETTER KA
+    0x041E,  # О CYRILLIC CAPITAL LETTER O
+    0x041F,  # П CYRILLIC CAPITAL LETTER PE
+    0x0431,  # б CYRILLIC SMALL LETTER BE
+    0x0432,  # в CYRILLIC SMALL LETTER VE
+    0x0436,  # ж CYRILLIC SMALL LETTER ZHE
+    0x0438,  # и CYRILLIC SMALL LETTER I
+    0x0439,  # й CYRILLIC SMALL LETTER SHORT I
+    0x043B,  # л CYRILLIC SMALL LETTER EL
+    0x043D,  # н CYRILLIC SMALL LETTER EN
+    0x043E,  # о CYRILLIC SMALL LETTER O
+    0x0440,  # р CYRILLIC SMALL LETTER ER
+    0x0441,  # с CYRILLIC SMALL LETTER ES
+    0x0443,  # у CYRILLIC SMALL LETTER U
+    0x0447,  # ч CYRILLIC SMALL LETTER CHE
+    0x044B,  # ы CYRILLIC SMALL LETTER YERU
+}
+
+CYRILLIC_ASCII = {
+    0x041A: "K",
+    0x041E: "O",
+    0x043E: "o",
+    0x0440: "p",
+    0x0441: "c",
+    0x0443: "y",
+}
+
 
 # Characters explicitly observed in the user's Claude Code / terminal output.
 EXPLICIT_CODEPOINTS = {
     0x00B7,  # · MIDDLE DOT (normally already present)
+    *GREEK_ACCENTED_LETTERS,
     *range(0x0391, 0x03A2),  # Greek capitals alpha through rho
     *range(0x03A3, 0x03AA),  # Greek capitals sigma through omega; U+03A2 is unassigned
     *range(0x03B1, 0x03CA),  # Greek lowercase alphabet, including final sigma
+    *CYRILLIC_LETTERS,
     0x05BE,  # ־ HEBREW PUNCTUATION MAQAF
     0x05C0,  # ׀ HEBREW PUNCTUATION PASEQ
     0x05C3,  # ׃ HEBREW PUNCTUATION SOF PASUQ
@@ -1079,6 +1114,169 @@ def _build_greek_letter(codepoint: int) -> Builder:
             line(width * 0.80, middle, width * 0.80, x_height)
         else:
             raise ValueError(f"Unsupported Greek letter: U+{codepoint:04X}")
+
+    return builder
+
+
+def _build_greek_accented_letter(codepoint: int) -> Builder:
+    base_codepoint = GREEK_ACCENTED_LETTERS[codepoint]
+
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        # Accented capitals sort before their bases during installation. Build
+        # the base directly when it is not already supplied by the input font.
+        capital = base_codepoint < 0x03AA
+        if base_codepoint in font.getBestCmap():
+            base_builder = _build_existing_character(chr(base_codepoint))
+        elif capital:
+            base_builder = _build_greek_capital(base_codepoint)
+        else:
+            base_builder = _build_greek_letter(base_codepoint)
+        base_pen = TTGlyphPen(font.getGlyphSet())
+        base_builder(font, base_pen, width, bottom, top)
+        base_glyph = base_pen.glyph()
+        base_glyph.recalcBounds(font["glyf"])
+        weight = max(84.0, width * 0.075)
+        if capital:
+            # Greek capital tonos sits at the upper left, beside the letter.
+            base_glyph.draw(
+                TransformPen(pen, Transform(0.83, 0, 0, 1, width * 0.17, 0)),
+                font["glyf"],
+            )
+            _stroke_segment(
+                pen, width * 0.07, base_glyph.yMax * 0.78,
+                width * 0.20, base_glyph.yMax, weight,
+            )
+        else:
+            base_glyph.draw(pen, font["glyf"])
+            center = (base_glyph.xMin + base_glyph.xMax) / 2.0
+            _stroke_segment(
+                pen, center - width * 0.07, base_glyph.yMax + width * 0.12,
+                center + width * 0.07, base_glyph.yMax + width * 0.30, weight,
+            )
+
+    return builder
+
+
+def _build_cyrillic_letter(codepoint: int) -> Builder:
+    if codepoint in CYRILLIC_ASCII:
+        return _build_existing_character(CYRILLIC_ASCII[codepoint])
+
+    def builder(
+        font: TTFont, pen: TTGlyphPen, width: int, bottom: int, top: int
+    ) -> None:
+        cmap = font.getBestCmap()
+        glyph_set = font.getGlyphSet()
+        _, baseline, _, cap_height = _bounds(font, cmap[ord("H")])
+        _, _, _, x_height = _bounds(font, cmap[ord("x")])
+        height = x_height - baseline
+        weight = max(110.0, width * 0.16)
+        left, right = width * 0.18, width * 0.82
+        center = width / 2.0
+
+        def line(x0: float, y0: float, x1: float, y1: float) -> None:
+            _stroke_segment(pen, x0, y0, x1, y1, weight * 0.82)
+
+        def stem(x: float, y0: float, y1: float) -> None:
+            _rect(pen, x - weight / 2.0, y0, x + weight / 2.0, y1)
+
+        def small_cap(character: str, *, mirror: bool = False) -> None:
+            source_name = cmap[ord(character)]
+            _, source_bottom, _, source_top = _bounds(font, source_name)
+            scale_y = height / (source_top - source_bottom)
+            transform = Transform(
+                -1 if mirror else 1, 0, 0, scale_y,
+                width if mirror else 0, baseline - source_bottom * scale_y,
+            )
+            destination = ReverseContourPen(pen) if mirror else pen
+            glyph_set[source_name].draw(TransformPen(destination, transform))
+
+        if codepoint == 0x041F:  # Pe: straight uprights and a cap-height roof.
+            stem(left, baseline, cap_height)
+            stem(right, baseline, cap_height)
+            _rect(pen, left, cap_height - weight * 0.8, right, cap_height)
+        elif codepoint == 0x0431:  # Be: an o-shaped bowl with an ascending hook.
+            _build_existing_character("o")(font, pen, width, bottom, top)
+            hook_top = cap_height
+            hook_bottom = baseline + height * 0.54
+            pen.moveTo((width * 0.07, hook_bottom))
+            pen.qCurveTo((width * 0.07, hook_top), (width * 0.62, hook_top))
+            pen.lineTo((width * 0.88, hook_top))
+            pen.lineTo((width * 0.88, hook_top - weight * 0.8))
+            pen.lineTo((width * 0.62, hook_top - weight * 0.8))
+            pen.qCurveTo(
+                (width * 0.23, hook_top - weight * 0.8),
+                (width * 0.23, hook_bottom),
+            )
+            pen.closePath()
+        elif codepoint == 0x0432:  # Ve
+            small_cap("B")
+        elif codepoint == 0x0436:  # Zhe
+            stem(center, baseline, x_height)
+            middle = baseline + height * 0.51
+            for x in (width * 0.12, width * 0.88):
+                line(x, baseline + weight * 0.25, center, middle)
+                line(center, middle, x, x_height - weight * 0.25)
+        elif codepoint in (0x0438, 0x0439):  # I and short I
+            small_cap("N", mirror=True)
+            if codepoint == 0x0439:
+                _ellipse_arc_band(
+                    pen, center, x_height + weight * 1.8,
+                    width * 0.22, weight * 0.80,
+                    2.0 * math.pi, math.pi, weight * 0.65,
+                )
+        elif codepoint == 0x043B:  # El: sloping left leg, flat roof, right stem.
+            stem(right, baseline, x_height)
+            roof_left = width * 0.40
+            _rect(pen, roof_left, x_height - weight * 0.8, right, x_height)
+            pen.moveTo((width * 0.06, baseline))
+            pen.lineTo((width * 0.06, baseline + weight * 0.8))
+            pen.qCurveTo(
+                (width * 0.20, baseline + weight * 0.8),
+                (roof_left - weight / 2.0, x_height),
+            )
+            pen.lineTo((roof_left + weight / 2.0, x_height))
+            pen.qCurveTo((width * 0.32, baseline), (width * 0.06, baseline))
+            pen.closePath()
+        elif codepoint == 0x043D:  # En
+            small_cap("H")
+        elif codepoint == 0x0447:  # Che: upper cup joins a full-height right stem.
+            stem(right, baseline, x_height)
+            join = baseline + height * 0.44
+            pen.moveTo((left - weight / 2.0, x_height))
+            pen.lineTo((left + weight / 2.0, x_height))
+            pen.lineTo((left + weight / 2.0, join + weight * 1.2))
+            pen.qCurveTo(
+                (left + weight / 2.0, join + weight * 0.8),
+                (center, join + weight * 0.8),
+            )
+            pen.lineTo((right, join + weight * 0.8))
+            pen.lineTo((right, join))
+            pen.lineTo((center, join))
+            pen.qCurveTo((left - weight / 2.0, join), (left - weight / 2.0, join + weight * 1.2))
+            pen.closePath()
+        elif codepoint == 0x044B:  # Yeru: soft-sign bowl plus a separate right stem.
+            stem(left, baseline, x_height)
+            bowl_right = width * 0.66
+            bowl_top = baseline + height * 0.64
+            mid = (baseline + bowl_top) / 2.0
+            pen.moveTo((left, baseline))
+            pen.lineTo((left, bowl_top))
+            pen.lineTo((width * 0.36, bowl_top))
+            pen.qCurveTo((bowl_right, bowl_top), (bowl_right, mid))
+            pen.qCurveTo((bowl_right, baseline), (width * 0.36, baseline))
+            pen.closePath()
+            inset = weight * 0.77
+            pen.moveTo((left + weight / 2.0, baseline + inset))
+            pen.lineTo((width * 0.36, baseline + inset))
+            pen.qCurveTo((bowl_right - weight, baseline + inset), (bowl_right - weight, mid))
+            pen.qCurveTo((bowl_right - weight, bowl_top - inset), (width * 0.36, bowl_top - inset))
+            pen.lineTo((left + weight / 2.0, bowl_top - inset))
+            pen.closePath()
+            stem(width * 0.87, baseline, x_height)
+        else:
+            raise ValueError(f"Unsupported Cyrillic letter: U+{codepoint:04X}")
 
     return builder
 
@@ -2685,6 +2883,10 @@ def _planned_builders() -> dict[int, Builder]:
         builders[codepoint] = _build_greek_letter(codepoint)
     for codepoint in (*range(0x0391, 0x03A2), *range(0x03A3, 0x03AA)):
         builders[codepoint] = _build_greek_capital(codepoint)
+    for codepoint in GREEK_ACCENTED_LETTERS:
+        builders[codepoint] = _build_greek_accented_letter(codepoint)
+    for codepoint in CYRILLIC_LETTERS:
+        builders[codepoint] = _build_cyrillic_letter(codepoint)
     for codepoint, (sequence, horizontal_bar) in LATIN_EXTENDED_D_LIGATURES.items():
         builders[codepoint] = _build_letter_sequence(
             sequence, horizontal_bar=horizontal_bar
@@ -2838,7 +3040,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Installed family name (default: Claudaco VERSION)",
     )
     parser.add_argument(
-        "--version", default="1.228", help="Version string (default: %(default)s)"
+        "--version", default="1.229", help="Version string (default: %(default)s)"
     )
     parser.add_argument(
         "--replace-existing",
